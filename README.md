@@ -15,13 +15,14 @@ You can define multiple preset in a single preset file.
 Here is the preset structure
 
 
-
+```
 preset 
 {
 	[PRESET_PROPERTY] : [PRESET_PROPERTY_VALUE];
 	 ....
 	 ....
 };
+```
 
 < character is comment out begin, and > character is the comment out end block
 
@@ -32,7 +33,7 @@ preset
 "command" (string) : ffmpeg conversion command. $INF{1...n} and $OUTF constants represents the input and output filename for ffmpegShell Internal. 
 
 
-"mediaType" (mediatype) : media file type. it can be one of he {audio, video} values.
+"mediaType" (mediatype) : media file type. it can be one of the {audio, video} values.
 
 "operationType" (optype) : ffmpeg command operation type. ffmpegShell will be using this value for seperation command category. it can be one of the 
 {combination, extraction, conversion} values.
@@ -43,7 +44,7 @@ preset
 
 "runOnFinish" (string) : command to execute after the process completes.
 
-
+```
 preset
 {
 	name : "Embed subtitle";
@@ -53,4 +54,4 @@ preset
 	sourceFormat : "mp4";
 };
 
-
+```
