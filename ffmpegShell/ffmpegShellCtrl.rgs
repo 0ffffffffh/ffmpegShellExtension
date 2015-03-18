@@ -1,0 +1,40 @@
+HKCR
+{
+	NoRemove CLSID
+	{
+		ForceRemove {F44E5F86-4BA1-4359-888E-2EB257343E29} = s 'ffmpegShellCtrl Class'
+		{
+			ForceRemove 'Programmable'
+			InprocServer32 = s '%MODULE%'
+			{
+				val ThreadingModel = s 'Apartment'
+			}
+			TypeLib = s '{3CE1FAE0-05CA-46D7-9EF1-9D3DFB617294}'
+			Version = s '1.0'
+		}
+	}
+
+	NoRemove * 
+	{ 
+		NoRemove shellex 
+		{ 
+			NoRemove ContextMenuHandlers 
+			{ 
+				ForceRemove ffmpegShell = s '{F44E5F86-4BA1-4359-888E-2EB257343E29}' 
+			} 
+		} 
+	}
+	
+	
+	NoRemove Directory
+	{ 
+		NoRemove shellex 
+		{ 
+			NoRemove ContextMenuHandlers 
+			{ 
+				ForceRemove ffmpegShell = s '{F44E5F86-4BA1-4359-888E-2EB257343E29}' 
+			} 
+		} 
+	} 	
+
+}

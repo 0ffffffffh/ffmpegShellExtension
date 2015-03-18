@@ -1,0 +1,11 @@
+HKCR
+{
+	NoRemove AppID
+	{
+		'%APPID%' = s 'ffmpegShell'
+		'ffmpegShell.DLL'
+		{
+			val AppID = s '%APPID%'
+		}
+	}
+}

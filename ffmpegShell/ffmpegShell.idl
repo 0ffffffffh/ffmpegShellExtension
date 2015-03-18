@@ -1,0 +1,36 @@
+// ffmpegShell.idl : IDL source for ffmpegShell
+//
+
+// This file will be processed by the MIDL tool to
+// produce the type library (ffmpegShell.tlb) and marshalling code.
+
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+	object,
+	uuid(07D8B9D9-E267-4B75-9C1C-B06FB89BEFAE),
+	dual,
+	nonextensible,
+	pointer_default(unique)
+]
+interface IffmpegShellCtrl : IDispatch{
+};
+[
+	uuid(3CE1FAE0-05CA-46D7-9EF1-9D3DFB617294),
+	version(1.0),
+	helpstring("ffmpegShell 1.0 Type Library")
+]
+library ffmpegShellLib
+{
+	importlib("stdole2.tlb");
+	[
+		uuid(F44E5F86-4BA1-4359-888E-2EB257343E29),
+		helpstring("ffmpegShellCtrl Class")
+	]
+	coclass ffmpegShellCtrl
+	{
+		[default] interface IffmpegShellCtrl;
+	};
+};
+
