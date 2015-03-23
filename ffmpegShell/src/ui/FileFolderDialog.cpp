@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "FileFolderDialog.h"
+#include "ui\FileFolderDialog.h"
 #include "Memory.h"
 #include <Shlobj.h>
 

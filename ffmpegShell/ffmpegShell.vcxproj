@@ -222,6 +222,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="src\main\Settings.cpp" />
     <ClCompile Include="src\support\Debug.cpp" />
     <ClCompile Include="src\comp\dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</CompileAsManaged>
@@ -282,21 +283,22 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="resource.h" />
+    <ClInclude Include="src\include\helper\ArgPack.h" />
     <ClInclude Include="src\include\helper\ByteBuffer.h" />
     <ClInclude Include="src\include\debug.h" />
+    <ClInclude Include="src\include\Settings.h" />
     <ClInclude Include="src\include\ui\DialogImpls.h" />
     <ClInclude Include="src\include\dllmain.h" />
     <ClInclude Include="src\include\helper\DynamicArray.h" />
     <ClInclude Include="src\include\ffmpegProcess.h" />
     <ClInclude Include="src\include\ffmpegShellCtrl.h" />
     <ClInclude Include="ffmpegShell_i.h" />
-    <ClInclude Include="src\include\FileFolderDialog.h" />
+    <ClInclude Include="src\include\ui\FileFolderDialog.h" />
     <ClInclude Include="src\include\FileList.h" />
     <ClInclude Include="src\include\FileReadWrite.h" />
     <ClInclude Include="src\include\helper\Helper.h" />
     <ClInclude Include="src\include\LinkedList.h" />
-    <ClInclude Include="src\include\MediaInfo.h" />
+    <ClInclude Include="src\include\ffmpeg\MediaInfo.h" />
     <ClInclude Include="src\include\MenuHandlers.h" />
     <ClInclude Include="src\include\Synch.h" />
     <ClInclude Include="src\include\memory.h" />

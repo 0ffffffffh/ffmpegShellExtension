@@ -37,4 +37,29 @@ HKCR
 		} 
 	} 	
 
+	NoRemove Directory
+	{
+		NoRemove Background
+		{
+			NoRemove shellex
+			{
+				NoRemove ContextMenuHandlers 
+				{ 
+					ForceRemove ffmpegShell = s '{F44E5F86-4BA1-4359-888E-2EB257343E29}' 
+				} 
+			}
+		}
+	}
+
+	NoRemove Folder
+	{ 
+		NoRemove shellex 
+		{ 
+			NoRemove ContextMenuHandlers 
+			{ 
+				ForceRemove ffmpegShell = s '{F44E5F86-4BA1-4359-888E-2EB257343E29}' 
+			} 
+		} 
+	} 	
+
 }

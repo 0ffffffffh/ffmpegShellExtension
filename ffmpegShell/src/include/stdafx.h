@@ -61,6 +61,8 @@
 	#define NOTIMPLEMENTED() MessageBoxW(__FUNCTION__ " not implemented yet.")
 #endif
 
+#define FORWARDED extern
+
 void DmProtectVirtualSpace();
 
 void DmUnprotectVirtualSpace();

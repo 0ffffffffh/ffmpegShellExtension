@@ -30,6 +30,8 @@ extern wchar ge_ModuleDirW[MAX_PATH];
 
 #define wctomb_h(s) ffhelper::Helper::WideToAnsiString((wnstring)s)
 
+extern HINSTANCE ge_ModuleInstance;
+
 namespace ffhelper
 {
 	class Helper
@@ -61,6 +63,35 @@ namespace ffhelper
 				FreeLibrary(kernel32);
 		}
 
+		static wnstring PathJoin(wnstring base, wnstring fileName)
+		{
+			uint4 baseLen,fileNameLen,newLen;
+			wnstring newPath;
+
+			if (base == NULL || fileName == NULL)
+				return NULL;
+
+			baseLen = wcslen(base);
+			fileNameLen = wcslen(fileName);
+
+			newPath = ALLOCSTRINGW(baseLen + fileNameLen);
+
+			if (newPath == NULL)
+				return NULL;
+
+			if (*(base + baseLen-1) == L'\\')
+				baseLen--;
+
+			wcsncpy(newPath,base,baseLen);
+
+			if (*fileName != L'\\')
+				wcscat(newPath,L"\\");
+				
+			wcscat(newPath,fileName);
+
+			return newPath;
+		}
+
 		static wnstring MakeAppPath(wnstring fileName)
 		{
 			uint4 size;
@@ -74,16 +105,12 @@ namespace ffhelper
 
 			size = wcslen(modulePath);
 			size += wcslen(fileName);
-			size += 1; // +1 byte is for the \\ directory seperator
 			appPath = ALLOCSTRINGW(size);
 
 			wcscpy(appPath,modulePath);
 			
-			if (*fileName != L'\\')
-				wcscat(appPath,L"\\");
-
-			wcscat(appPath,fileName);
-
+			wcscat(appPath,fileName + ((int)(*fileName == L'\\')));
+			
 			return (wnstring)appPath;
 		}
 
@@ -96,7 +123,7 @@ namespace ffhelper
 			if (*ptr != 0)
 				return (wnstring)ge_ModuleDirW;
 
-			len = (uint4)GetModuleFileNameW(NULL,ge_ModuleDirW,MAX_PATH);
+			len = (uint4)GetModuleFileNameW((HMODULE)ge_ModuleInstance,ge_ModuleDirW,MAX_PATH);
 			ptr += len;
 			
 			while (*ptr != L'\\')

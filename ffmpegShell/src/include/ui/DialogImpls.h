@@ -2,7 +2,8 @@
 
 #include "stdafx.h"
 #include "UiWrapper.h"
-
+#include "FileFolderDialog.h"
+#include "Settings.h"
 
 class CompileDialog : public UiWrapper
 {
@@ -45,6 +46,7 @@ public:
 	}
 };
 
+FORWARDED SETTINGS g_settings;
 
 class SettingsDlg : public UiWrapper
 {
@@ -54,7 +56,35 @@ public:
 	{
 	}
 
+	bool ShowDialog()
+	{
+		if (!UiWrapper::ShowDialog())
+			return false;
+
+		this->SetControlText(IDC_TXTFBP,g_settings.ffmpegBinaryPath);
+		return true;
+	}
+
 	void OnCommand(WPARAM wp, LPARAM lp)
 	{
+		DIALOG *dlg;
+
+		switch (LOWORD(wp))
+		{
+		case IDC_BTNBROWSE:
+			{
+				if (DlgOpenSpecialDialog(
+					NULL,FolderDialogSelect,
+					L"Select ffmpeg binary directory",L"C:\\",&dlg))
+				{
+					wcscpy(g_settings.ffmpegBinaryPath,dlg->path);
+					IntCommitSettings();
+
+					this->SetControlText(IDC_TXTFBP,dlg->path);
+				}
+			}
+			break;
+		}
 	}
+
 };

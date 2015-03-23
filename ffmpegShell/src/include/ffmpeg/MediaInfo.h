@@ -1,7 +1,7 @@
 #pragma once
 
-#include "stdafx.h"
-#include "ffmpegProcess.h"
+#include "..\stdafx.h"
+#include "..\ffmpegProcess.h"
 #include <math.h>
 
 typedef struct

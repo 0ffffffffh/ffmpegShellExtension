@@ -6,11 +6,20 @@
 
 using namespace std;
 
-map<wchar *, LinkedList<PRESET *>*> *gp_presetList=NULL;
+struct stringComparer
+{
+public:
+	bool operator()(const wchar *x, const wchar *y) const
+	{
+		return wcscmp(x,y);
+	}
+};
+
+map<wchar *, LinkedList<PRESET *> *, stringComparer> *gp_presetList=NULL;
 
 void PtxInsertPresetToMappedList(PRESET *preset)
 {
-	map<wchar *,LinkedList<PRESET *> *>::iterator it;
+	map<wchar *,LinkedList<PRESET *> *, stringComparer>::iterator it;
 	LinkedList<PRESET *> *presetList = NULL;
 	
 	it = gp_presetList->find((wchar *)preset->sourceFormat);
@@ -43,7 +52,7 @@ bool PtLoadPreset(wnstring presetFile)
 	if (pstHeader.magic != PCF_MAGIC || !pstHeader.presetCount)
 		goto cleanUp;
 
-	gp_presetList = new map<wchar *,LinkedList<PRESET *> *>();
+	gp_presetList = new map<wchar *,LinkedList<PRESET *> *, stringComparer>();
 
 	for (uint4 i=0;i<pstHeader.presetCount;i++)
 	{
@@ -61,7 +70,7 @@ cleanUp:
 
 LinkedList<PRESET *> *PtGetPresetsByExtension(wchar *presetExt)
 {
-	map<wchar *,LinkedList<PRESET *> *>::iterator it;
+	map<wchar *,LinkedList<PRESET *> *, stringComparer>::iterator it;
 
 	it = gp_presetList->find(presetExt);
 

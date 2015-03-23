@@ -13,8 +13,8 @@ typedef enum
 	FFPROBE
 }FFMPEG_PROCESS_TYPE;
 
-static const wnstring FFMPEG_BINARY = L"D:\\systools\\ffmpeg\\bin\\ffmpeg.exe";
-static const wnstring FFPROBE_BINARY = L"D:\\systools\\ffmpeg\\bin\\ffprobe.exe";
+static const wnstring FFMPEG_BINARY = L"ffmpeg.exe";
+static const wnstring FFPROBE_BINARY = L"ffprobe.exe";
 
 class ffmpegProcess
 {
@@ -60,16 +60,23 @@ public:
 
 		this->cbArg = arg;
 
+		
 		if (this->procType == FFPROBE)
-			binary = FFPROBE_BINARY;
+			binary = ffhelper::Helper::PathJoin((wnstring)g_settings.ffmpegBinaryPath,FFPROBE_BINARY);
 		else
-			binary = FFMPEG_BINARY;
+			binary = ffhelper::Helper::PathJoin((wnstring)g_settings.ffmpegBinaryPath,FFMPEG_BINARY);
+
 
 		cmdLine = (wnstring)ALLOCSTRINGW(wcslen(binary) + wcslen(this->argList));
 
 		wsprintf(cmdLine,L"%s %s",binary,this->argList);
 
+		FREESTRING(binary);
+
 		this->process = PsExecuteProcess(NULL,cmdLine,(STDOUT_RECEIVE_ROUTINE)ffmpegProcess::StdoutReceive,this);
+		
+		FREESTRING(cmdLine);
+
 		return this->process != NULL;
 	}
 

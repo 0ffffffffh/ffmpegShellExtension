@@ -3,7 +3,8 @@
 #include "PresetCompiler.h"
 #include "ui\UI.h"
 #include "ui\DialogImpls.h"
-#include "MediaInfo.h"
+#include "ffmpeg\MediaInfo.h"
+#include "helper\ArgPack.h"
 
 #define DECL_HANDLER(handlerName) static bool handlerName(vptr arg)
 
@@ -32,12 +33,31 @@ class MenuHandlers
 	 static MediaInfo *gps_MediaInfo;
 
 public:
+	DECL_HANDLER(ShowSettings)
+	{
+		SettingsDlg * settings = new SettingsDlg();
+		settings->ShowDialog();
+
+		HE_SUCCESS;
+	}
+
 	DECL_HANDLER(StartConvertingOperation)
 	{
+		vptr argPack;
 		WCHAR fileName[MAX_PATH];
-		FILEPATHITEM *file = CASTARG(FILEPATHITEM *);
+		FILEPATHITEM *file;
+		PRESET *preset;
+		int4 pkOff=0;
+
+		argPack = CASTARG(vptr);
+
+		pkOff = READPACKET(argPack,PRESET *,pkOff,&preset);
+		pkOff = READPACKET(argPack,FILEPATHITEM *,pkOff,&file);
+
+		ffmpegProcess *proc = new ffmpegProcess(FFMPEG_PROCESS_TYPE::FFMPEG);
 
 		FlGeneratePathString(file,fileName,MAX_PATH,PAS_NONE,NULL);
+		
 
 		HE_SUCCESS;
 	}
@@ -59,26 +79,23 @@ public:
 
 	DECL_HANDLER(CompilePresetHandler)
 	{
-		WCHAR fileName[MAX_PATH],outputFile[MAX_PATH];
+		WCHAR fileName[MAX_PATH];
+		wnstring outputFile;
+
 		CompileDialog *dlg = new CompileDialog();
 		
 		FILEPATHITEM *item = CASTARG(FILEPATHITEM *);
-		FILEPATHITEM *outputItem;
 
 		if (!item)
 			HE_FAILED;
 
-		outputItem = FlCloneNode(item);
-		FlSetNodePart(outputItem,L"cpf",OPL_EXTENSION);
+		outputFile = ffhelper::Helper::MakeAppPath(L"presets.cpf");
 
 		dlg->ShowDialog();
 
 		FlGeneratePathString(item,fileName,MAX_PATH,PAS_NONE,NULL);
-		FlGeneratePathString(outputItem,outputFile,MAX_PATH,PAS_NONE,NULL);
-
-		FlFreeClonedNode(outputItem);
-
-		HE_RET(PcCompilePreset(fileName,outputFile,MenuHandlers::CompilationEventHandler,dlg)); //&dlg
+		
+		HE_RET(PcCompilePreset(fileName,outputFile,MenuHandlers::CompilationEventHandler,dlg));
 	}
 
 	DECL_HANDLER(OpenPresetSettingsDialog)

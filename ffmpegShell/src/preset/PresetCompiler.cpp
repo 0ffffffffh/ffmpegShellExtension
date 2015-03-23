@@ -36,7 +36,7 @@ bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 	if (fileIo->GetOpenType() == CreateNew)
 	{
 		presetHeader.magic = PCF_MAGIC;
-		presetHeader.presetCount = presets->GetCount();
+		presetHeader.presetCount = 0;
 		memset(presetHeader.reserved,0xcb,sizeof(presetHeader.reserved));
 
 		written = fileIo->Write((byte *)&presetHeader,-1,sizeof(PRESET_FILE_HEADER));
@@ -65,14 +65,7 @@ bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 	{
 		po = node->GetValue();
 
-		wcscpy(preset.name,po->preset.name);
-		wcscpy(preset.command,po->preset.command);
-		wcscpy(preset.sourceFormat,po->preset.sourceFormat);
-		wcscpy(preset.destinationFormat,po->preset.destinationFormat);
-		wcscpy(preset.runOnFinish,po->preset.runOnFinish);
-
-		preset.mediaType = po->preset.mediaType;
-		preset.opType = po->preset.opType;
+		memcpy(&preset,&po->preset,sizeof(PRESET));
 
 		written = fileIo->Write((byte *)&preset,-1,sizeof(PRESET));
 

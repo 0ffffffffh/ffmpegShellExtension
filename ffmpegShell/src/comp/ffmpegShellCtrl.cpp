@@ -5,6 +5,8 @@
 #include "FileList.h"
 #include "ui\UI.h"
 #include "MenuHandlers.h"
+#include "Settings.h"
+#include "helper\ArgPack.h"
 
 //File system object list.
 FileList					*g_fileObjectList=NULL;
@@ -14,6 +16,7 @@ UIOBJECT					*g_uiObj;
 HWND						g_activeHwnd=NULL;
 FILEPATHITEM				*g_selectedFile;
 bool						g_presetsLoaded=FALSE;
+FORWARDED SETTINGS			g_settings;
 
 VOID AfterUiDestoryDisposerRoutine()
 {
@@ -32,6 +35,10 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	wnstring compiledPresetPath;
 	UINT i;
 
+	
+	if (pdtobj == NULL)
+		return S_OK; //Its a directory background handler. simply return ok
+
 	Fetc.cfFormat = CF_HDROP;
 	Fetc.ptd = 0;
 	Fetc.dwAspect = DVASPECT_CONTENT;
@@ -46,9 +53,10 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 		return E_FAIL;
 	}
 
-	compiledPresetPath = ffhelper::Helper::MakeAppPath(L"preset.cpf");
+	compiledPresetPath = ffhelper::Helper::MakeAppPath(L"presets.cpf");
 
-	g_presetsLoaded = PtLoadPreset(compiledPresetPath);
+	if (!g_presetsLoaded)
+		g_presetsLoaded = PtLoadPreset(compiledPresetPath);
 
 	FREESTRING(compiledPresetPath);
 
@@ -90,16 +98,23 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 
 STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT idCmdFirst,UINT idCmdLast,UINT uFlags)
 {	
-	MENUCONTAINER *child;
-	FILEPATHITEM *filePath;
-	LinkedList<PRESET *> *matchedPresets;
-	
+	MENUCONTAINER *child = NULL;
+	FILEPATHITEM *filePath = NULL;
+	LinkedList<PRESET *> *matchedPresets = NULL;
+	vptr argPack;
+
 	g_menu = MeCreateMenuContainer(idCmdFirst,idCmdLast,uFlags);
 
-	filePath = g_fileObjectList->GetLastObject();
+	if (g_fileObjectList != NULL)
+		filePath = g_fileObjectList->GetLastObject();
+
+	MeAddItem(g_menu,MenuHandlers::ShowSettings,NULL,L"Settings");
 
 	if (filePath != NULL)
 	{
+		if (!filePath->objectPartLengths[OPL_EXTENSION])
+			return MeActivateMenu(g_menu,hmenu);
+
 		if (!wcsicmp(filePath->objectExtension,L"pst"))
 		{
 			MeAddItem(g_menu,MenuHandlers::CompilePresetHandler,filePath,L"Compile preset");
@@ -108,8 +123,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 		{
 			if (!g_presetsLoaded)
 			{
-				MeDeleteMenuContainer(g_menu);
-				return E_FAIL;
+				return MeActivateMenu(g_menu,hmenu);
 			}
 
 			matchedPresets = PtGetPresetsByExtension((wchar *)filePath->objectExtension);
@@ -120,7 +134,15 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 					node != NULL;
 					node = node->Next())
 				{
-					MeAddItem(g_menu,MenuHandlers::StartConvertingOperation,filePath,(wnstring)node->GetValue()->name);
+					int4 packOffset=0;
+					vptr nodePtr = node->GetValue();
+
+					argPack = ALLOCPACKET(sizeof(PRESET *) + sizeof(FILEPATHITEM *));
+
+					packOffset = WRITEPACKET(argPack,PRESET *,packOffset,&nodePtr);
+					WRITEPACKET(argPack,FILEPATHITEM *,packOffset,&filePath);
+
+					MeAddItem(g_menu,MenuHandlers::StartConvertingOperation,argPack,(wnstring)node->GetValue()->name);
 					MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
 				}
 			}
