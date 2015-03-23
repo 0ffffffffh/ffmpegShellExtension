@@ -282,6 +282,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="resource.h" />
     <ClInclude Include="src\include\helper\ByteBuffer.h" />
     <ClInclude Include="src\include\debug.h" />
     <ClInclude Include="src\include\ui\DialogImpls.h" />
