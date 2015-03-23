@@ -52,7 +52,7 @@ static bool FlCheckDirectoryPermission(LPCWSTR File, OBJECTTYPE type)
 
 }
 
-static BOOL FlParseObject(wstring item, FILEPATHITEM *node)
+static BOOL FlParseObject(wnstring item, FILEPATHITEM *node)
 {
 	DWORD attrib;
 	wchar *p;
@@ -182,6 +182,7 @@ static BOOL FlSetNodePart(FILEPATHITEM *node, LPCWSTR str, DWORD type)
 	return TRUE;
 }
 
+
 static UINT FlGeneratePathString(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchMax, DWORD appendStyle,LPCWSTR appendString)
 {
 	UNREFERENCED_PARAMETER(cchMax);
@@ -249,7 +250,7 @@ private:
 	}
 
 public:
-	static FilePathItem *Parse(wstring ws)
+	static FilePathItem *Parse(wnstring ws)
 	{
 		FilePathItem *fpi = new FilePathItem();
 
@@ -268,52 +269,52 @@ public:
 	{
 	}
 
-	bool SetExtension(wstring newExtension)
+	bool SetExtension(wnstring newExtension)
 	{
 		return (bool)FlSetNodePart(&this->item,(LPCWSTR)newExtension,OPL_EXTENSION);
 	}
 
-	bool SetPath(wstring path)
+	bool SetPath(wnstring path)
 	{
 		return (bool)FlSetNodePart(&this->item,(LPCWSTR)path,OPL_FULLPATH);
 	}
 
-	bool SetName(wstring name)
+	bool SetName(wnstring name)
 	{
 		return (bool)FlSetNodePart(&this->item,(LPCWSTR)name,OPL_NAME);
 	}
 
-	uint4 GeneratePathString(wstring *buffer)
+	uint4 GeneratePathString(wnstring *buffer)
 	{
 		return GeneratePathString(buffer,PAS_NONE);
 	}
 
-	uint4 GeneratePathString(wstring *buffer, uint4 appendStyle)
+	uint4 GeneratePathString(wnstring *buffer, uint4 appendStyle)
 	{
 		return GeneratePathString(buffer,appendStyle,NULL);
 	}
 
-	uint4 GeneratePathString(wstring *buffer, uint4 appendStyle, wstring appendString)
+	uint4 GeneratePathString(wnstring *buffer, uint4 appendStyle, wnstring appendString)
 	{
 		if (!buffer)
 			return 0;
 
-		*buffer = (wstring)MemoryAlloc(GetPathBufferSize(),TRUE);
+		*buffer = (wnstring)MemoryAlloc(GetPathBufferSize(),TRUE);
 
 		return FlGeneratePathString(&this->item,*buffer,GetPathLength(),appendStyle,appendString);
 	}
 
-	uint4 GeneratePathString2(wstring *buffer, uint4 cchMax)
+	uint4 GeneratePathString2(wnstring *buffer, uint4 cchMax)
 	{
 		return GeneratePathString2(buffer,cchMax);
 	}
 
-	uint4 GeneratePathString2(wstring *buffer, uint4 cchMax, uint4 appendStyle)
+	uint4 GeneratePathString2(wnstring *buffer, uint4 cchMax, uint4 appendStyle)
 	{
 		return GeneratePathString2(buffer,cchMax,appendStyle,NULL);
 	}
 
-	uint4 GeneratePathString2(wstring *buffer, uint4 cchMax, uint4 appendStyle, wstring appendString)
+	uint4 GeneratePathString2(wnstring *buffer, uint4 cchMax, uint4 appendStyle, wnstring appendString)
 	{
 		if (!buffer)
 			return 0;
@@ -332,7 +333,7 @@ private:
 	LinkedList<FILEPATHITEM *> *objectList;
 	FILEPATHITEM *longestItem;
 
-	bool InternalAdd(wstring item)
+	bool InternalAdd(wnstring item)
 	{
 		FILEPATHITEM *newItem=NULL;
 
@@ -377,7 +378,7 @@ public:
 		return this->objectList->GetCount();
 	}
 
-	bool Add(wstring item)
+	bool Add(wnstring item)
 	{
 		return InternalAdd(item);
 	}

@@ -105,13 +105,13 @@ BOOL PsiStillRunning(PROCESS *process)
 	return exitCode == STILL_ACTIVE;
 }
 
-PROCESS *PsExecuteProcess(wstring processImageName, wstring arg, STDOUT_RECEIVE_ROUTINE callback,LPVOID cbArg)
+PROCESS *PsExecuteProcess(wnstring processImageName, wnstring arg, STDOUT_RECEIVE_ROUTINE callback,LPVOID cbArg)
 {
 	return PsExecuteProcessEx(processImageName,arg,callback,cbArg,false,0x4000);
 }
 
 
-PROCESS *PsExecuteProcessEx(wstring processImageName, wstring arg, STDOUT_RECEIVE_ROUTINE callback, LPVOID cbArg, bool passAsArgv, uint4 bufferStringSize)
+PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECEIVE_ROUTINE callback, LPVOID cbArg, bool passAsArgv, uint4 bufferStringSize)
 {
 	STARTUPINFOW psi;
 	PROCESS_INFORMATION processInfo;

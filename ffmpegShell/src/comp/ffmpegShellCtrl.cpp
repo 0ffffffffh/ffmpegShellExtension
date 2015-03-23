@@ -7,18 +7,19 @@
 #include "MenuHandlers.h"
 
 //File system object list.
-static FileList *fileObjectList=NULL;
-HMENU contextShellMenu=NULL;
-MENUCONTAINER *menu;
-UIOBJECT *uiObj;
-HWND activeHwnd=NULL;
-FILEPATHITEM *selectedFile;
+FileList					*g_fileObjectList=NULL;
+HMENU						g_contextShellMenu=NULL;
+MENUCONTAINER				*g_menu;
+UIOBJECT					*g_uiObj;
+HWND						g_activeHwnd=NULL;
+FILEPATHITEM				*g_selectedFile;
+bool						g_presetsLoaded=FALSE;
 
 VOID AfterUiDestoryDisposerRoutine()
 {
 	CURRENTROUTINE();
-	delete fileObjectList;
-	fileObjectList = NULL;
+	delete g_fileObjectList;
+	g_fileObjectList = NULL;
 }
 
 STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject *pdtobj,HKEY hkeyProgID)
@@ -28,6 +29,7 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	STGMEDIUM stgMedData;
 	UINT fileCount;
 	wchar fileTemp[MAX_PATH];
+	wnstring compiledPresetPath;
 	UINT i;
 
 	Fetc.cfFormat = CF_HDROP;
@@ -44,10 +46,16 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 		return E_FAIL;
 	}
 
-	DbDebugPrint("fileObjectList = %p",fileObjectList);
+	compiledPresetPath = ffhelper::Helper::MakeAppPath(L"preset.cpf");
 
-	if (fileObjectList == NULL)
-		fileObjectList = new FileList();
+	g_presetsLoaded = PtLoadPreset(compiledPresetPath);
+
+	FREESTRING(compiledPresetPath);
+
+	DbDebugPrint("fileObjectList = %p",g_fileObjectList);
+
+	if (g_fileObjectList == NULL)
+		g_fileObjectList = new FileList();
 	
 	fileCount = DragQueryFileW((HDROP)stgMedData.hGlobal,0xFFFFFFFF,NULL,0);
 
@@ -63,14 +71,14 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	for (i=0;i<fileCount;i++)
 	{
 		DragQueryFileW((HDROP)stgMedData.hGlobal,i,fileTemp,MAX_PATH);
-		fileObjectList->Add(fileTemp);
+		g_fileObjectList->Add(fileTemp);
 
-		if (!wcsicmp(fileObjectList->GetLastObject()->objectExtension,L"exe") ||
-			!wcsicmp(fileObjectList->GetLastObject()->objectExtension,L"dll"))
+		if (!wcsicmp(g_fileObjectList->GetLastObject()->objectExtension,L"exe") ||
+			!wcsicmp(g_fileObjectList->GetLastObject()->objectExtension,L"dll"))
 		{
 			ReleaseStgMedium(&stgMedData);
-			delete fileObjectList;
-			fileObjectList = NULL;
+			delete g_fileObjectList;
+			g_fileObjectList = NULL;
 			return E_FAIL;
 		}
 	}
@@ -84,24 +92,42 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 {	
 	MENUCONTAINER *child;
 	FILEPATHITEM *filePath;
+	LinkedList<PRESET *> *matchedPresets;
+	
+	g_menu = MeCreateMenuContainer(idCmdFirst,idCmdLast,uFlags);
 
-	menu = MeCreateMenuContainer(idCmdFirst,idCmdLast,uFlags);
-
-	filePath = fileObjectList->GetLastObject();
+	filePath = g_fileObjectList->GetLastObject();
 
 	if (filePath != NULL)
 	{
 		if (!wcsicmp(filePath->objectExtension,L"pst"))
 		{
-			MeAddItem(menu,MenuHandlers::CompilePresetHandler,filePath,L"Compile preset");
+			MeAddItem(g_menu,MenuHandlers::CompilePresetHandler,filePath,L"Compile preset");
 		}
-		else if (!wcsicmp(filePath->objectExtension,L"mp4"))
+		else
 		{
-			MeAddItem(menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
+			if (!g_presetsLoaded)
+			{
+				MeDeleteMenuContainer(g_menu);
+				return E_FAIL;
+			}
+
+			matchedPresets = PtGetPresetsByExtension((wchar *)filePath->objectExtension);
+			
+			if (matchedPresets != NULL)
+			{
+				for (LinkedListNode<PRESET *> *node = matchedPresets->Begin();
+					node != NULL;
+					node = node->Next())
+				{
+					MeAddItem(g_menu,MenuHandlers::StartConvertingOperation,filePath,(wnstring)node->GetValue()->name);
+					MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
+				}
+			}
 		}
 	}
 
-	return MeActivateMenu(menu,hmenu);
+	return MeActivateMenu(g_menu,hmenu);
 }
 	
 STDMETHODIMP CffmpegShellCtrl::InvokeCommand(CMINVOKECOMMANDINFO *pici)
@@ -114,7 +140,7 @@ STDMETHODIMP CffmpegShellCtrl::InvokeCommand(CMINVOKECOMMANDINFO *pici)
 	if (!HIWORD(pici->lpVerb))
 	{
 		offset = LOWORD(pici->lpVerb);
-		MeInvokeHandler(menu,offset);
+		MeInvokeHandler(g_menu,offset);
 	}
 	
 	DPRINT("invoking : %x",pici->lpVerb);

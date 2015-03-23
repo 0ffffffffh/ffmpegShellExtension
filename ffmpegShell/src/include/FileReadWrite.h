@@ -90,7 +90,7 @@ private:
 
 public:
 
-	static bool FileExists(wstring fileName)
+	static bool FileExists(wnstring fileName)
 	{
 		if (GetFileAttributesW(fileName) == INVALID_FILE_ATTRIBUTES)
 		{
@@ -101,7 +101,7 @@ public:
 		return true;
 	}
 
-	FileReadWrite(wstring fileName, OpenMode openMode, OpenType openType)
+	FileReadWrite(wnstring fileName, OpenMode openMode, OpenType openType)
 	{
 		this->mode = openMode;
 		this->type = openType;

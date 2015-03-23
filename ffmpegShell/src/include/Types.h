@@ -23,11 +23,11 @@ typedef unsigned short ushort;
 //short -> short
 
 
-typedef wchar_t * wstring;
+typedef wchar_t * wnstring;
 typedef wchar_t wchar;
 
 
-typedef char *astring;
+typedef char *anstring;
 typedef char achar;
 
 typedef void *vptr;

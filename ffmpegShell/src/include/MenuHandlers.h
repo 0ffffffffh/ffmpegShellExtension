@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "PresetCompiler.h"
 #include "ui\UI.h"
+#include "ui\DialogImpls.h"
+#include "MediaInfo.h"
 
 #define DECL_HANDLER(handlerName) static bool handlerName(vptr arg)
 
@@ -12,14 +14,12 @@
 #define HE_FAILED return false
 #define HE_RET(x) return x
 
-#include "ui\DialogImpls.h"
-#include "MediaInfo.h"
 
 class MenuHandlers
 {
 	 static void CompilationEventHandler(void *p, LPCSTR msg)
 	 {
-		 wstring ws = mbtowc_h(msg);
+		 wnstring ws = mbtowc_h(msg);
 		 CompileDialog *dlg = (CompileDialog *)p;
 
 		 dlg->AddStatusLine(ws);
@@ -32,6 +32,16 @@ class MenuHandlers
 	 static MediaInfo *gps_MediaInfo;
 
 public:
+	DECL_HANDLER(StartConvertingOperation)
+	{
+		WCHAR fileName[MAX_PATH];
+		FILEPATHITEM *file = CASTARG(FILEPATHITEM *);
+
+		FlGeneratePathString(file,fileName,MAX_PATH,PAS_NONE,NULL);
+
+		HE_SUCCESS;
+	}
+
 	DECL_HANDLER(ShowMediaInformations)
 	{
 		WCHAR fileName[MAX_PATH];
@@ -40,9 +50,10 @@ public:
 
 		FlGeneratePathString(item,fileName,MAX_PATH,PAS_NONE,NULL);
 
-		MediaInfo *mediaInfo = new MediaInfo((wstring)fileName);
+		MediaInfo *mediaInfo = new MediaInfo((wnstring)fileName);
 
-		mediaInfo->GetBitrate();
+		//TODO: Fix valid stream index
+		mediaInfo->GetBitrate(0);
 		HE_SUCCESS;
 	}
 

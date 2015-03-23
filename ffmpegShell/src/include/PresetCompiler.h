@@ -11,6 +11,6 @@ typedef struct
 
 #define PCF_MAGIC (uint4)0x40FF88FE
 
-bool PcCompilePreset(wstring presetFile, wstring outputFile,COMPILATION_EVENT_HANDLER eventHandler, void *arg);
+bool PcCompilePreset(wnstring presetFile, wnstring outputFile,COMPILATION_EVENT_HANDLER eventHandler, void *arg);
 
-bool PcDecompilePreset(wstring compiledPresetFile);
+bool PcDecompilePreset(wnstring compiledPresetFile);

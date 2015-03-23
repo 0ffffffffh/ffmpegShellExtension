@@ -13,13 +13,13 @@ typedef enum
 	FFPROBE
 }FFMPEG_PROCESS_TYPE;
 
-static const wstring FFMPEG_BINARY = L"D:\\systools\\ffmpeg\\bin\\ffmpeg.exe";
-static const wstring FFPROBE_BINARY = L"D:\\systools\\ffmpeg\\bin\\ffprobe.exe";
+static const wnstring FFMPEG_BINARY = L"D:\\systools\\ffmpeg\\bin\\ffmpeg.exe";
+static const wnstring FFPROBE_BINARY = L"D:\\systools\\ffmpeg\\bin\\ffprobe.exe";
 
 class ffmpegProcess
 {
 	PROCESS *process;
-	wstring argList;
+	wnstring argList;
 	vptr cbArg;
 
 	
@@ -48,15 +48,15 @@ public:
 	{
 	}
 
-	void SetArg(wstring argLine)
+	void SetArg(wnstring argLine)
 	{
 		this->argList = argLine;
 	}
 
 	bool Start(vptr arg)
 	{
-		wstring binary;
-		wstring cmdLine;
+		wnstring binary;
+		wnstring cmdLine;
 
 		this->cbArg = arg;
 
@@ -65,7 +65,7 @@ public:
 		else
 			binary = FFMPEG_BINARY;
 
-		cmdLine = (wstring)ALLOCSTRINGW(wcslen(binary) + wcslen(this->argList));
+		cmdLine = (wnstring)ALLOCSTRINGW(wcslen(binary) + wcslen(this->argList));
 
 		wsprintf(cmdLine,L"%s %s",binary,this->argList);
 

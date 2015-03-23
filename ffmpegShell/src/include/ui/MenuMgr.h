@@ -18,7 +18,7 @@ typedef struct
 {
 	uint4 cmdId;
 	MenuItemType type;
-	wstring menuStr;
+	wnstring menuStr;
 	wchar verb[8];
 	MENU_ITEM_HANDLER handler;
 	vptr handlerArg;
@@ -51,9 +51,9 @@ MENUCONTAINER *MeCreateMenuContainer(UINT cmdFirst, UINT cmdLast, UINT flag);
 
 void MeDeleteMenuContainer(MENUCONTAINER *container);
 
-MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wstring menuString);
+MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wnstring menuString);
 
-int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, wstring menuString, ...);
+int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, wnstring menuString, ...);
 
 bool MeAddSeperator(MENUCONTAINER *container);
 

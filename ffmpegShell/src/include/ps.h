@@ -14,7 +14,7 @@ typedef struct
 
 typedef struct
 {
-	wstring					commandLine;
+	wnstring					commandLine;
 	HANDLE					processHandle;
 	HANDLE					stdOutWorkerHandle;
 	HANDLE					stdOutPipeHandle;
@@ -22,9 +22,9 @@ typedef struct
 	BOOL					running;
 }PROCESS;
 
-PROCESS *PsExecuteProcess(wstring processImageName, wstring arg, STDOUT_RECEIVE_ROUTINE callback,LPVOID cbArg);
+PROCESS *PsExecuteProcess(wnstring processImageName, wnstring arg, STDOUT_RECEIVE_ROUTINE callback,LPVOID cbArg);
 
-PROCESS *PsExecuteProcessEx(wstring processImageName, wstring arg, STDOUT_RECEIVE_ROUTINE callback, LPVOID cbArg, bool passAsArgv, uint4 bufferStringSize);
+PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECEIVE_ROUTINE callback, LPVOID cbArg, bool passAsArgv, uint4 bufferStringSize);
 
 BOOL PsKillProcess(PROCESS *process);
 

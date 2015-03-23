@@ -66,7 +66,7 @@ public:
 		UiDestroyDialog(this->uiObject);
 	}
 
-	bool SetControlText(uint4 ctrlId, wstring str)
+	bool SetControlText(uint4 ctrlId, wnstring str)
 	{
 		HWND ctrlHwnd = GetDlgItem(this->uiObject->hwnd,ctrlId);
 

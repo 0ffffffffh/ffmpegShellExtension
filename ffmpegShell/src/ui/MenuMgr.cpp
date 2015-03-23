@@ -138,10 +138,10 @@ void MeDeleteMenuContainer(MENUCONTAINER *container)
 	}
 }
 
-int4 _MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, MenuItemType type, wstring menuString, va_list argList)
+int4 _MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, MenuItemType type, wnstring menuString, va_list argList)
 {
 	MENUCONTAINERITEM *menuItem;
-	wstring str = NULL;
+	wnstring str = NULL;
 	void *rootContainer;
 
 	if (type < Normal || type > Seperator)
@@ -212,7 +212,7 @@ int4 _MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr ar
 	return container->c.items->Add(menuItem);
 }
 
-MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wstring menuString)
+MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wnstring menuString)
 {
 	int4 index = _MeAddItem(container,NULL,NULL,Slot,menuString,NULL);
 
@@ -222,7 +222,7 @@ MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wstring menuString)
 	return NULL;
 }
 
-int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, wstring menuString, ...)
+int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, wnstring menuString, ...)
 {
 	int4 result;
 	va_list argList;

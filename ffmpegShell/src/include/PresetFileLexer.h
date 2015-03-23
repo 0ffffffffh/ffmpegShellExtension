@@ -75,7 +75,7 @@ public:
 
 	
 
-	PresetFileLexer(wstring presetFile, COMPILATION_EVENT_HANDLER handler, void *arg)
+	PresetFileLexer(wnstring presetFile, COMPILATION_EVENT_HANDLER handler, void *arg)
 	{
 		memset(this->fileName,0,sizeof(this->fileName));
 		wcsncpy(this->fileName,presetFile,wcslen(presetFile));

@@ -106,7 +106,7 @@ private:
 	{
 		bool result=false;
 
-		wstring wstr = ffhelper::Helper::AnsiToWideString((astring)value);
+		wnstring wstr = ffhelper::Helper::AnsiToWideString((anstring)value);
 
 		if (!wstr)
 			return false;

@@ -2,6 +2,7 @@
 
 #include "stdafx.h"
 #include "Memory.h"
+#include "Types.h"
 
 //http://msdn.microsoft.com/en-us/library/windows/desktop/hh706898(v=vs.85).aspx
 
@@ -17,15 +18,17 @@ static HMODULE kernel32;
 static bool isWin8;
 static PWOA pfnWaitOnAddress;
 
+extern wchar ge_ModuleDirW[MAX_PATH];
+
 #define CONVERT_TO_SIZE(x) ((x) = sizeof(T) * (x))
 
 #define HDT_DEFAULT		0x00000000
 #define HDT_DATE		0x00000002
 #define HDT_TIME		0x00000004
 
-#define mbtowc_h(s) ffhelper::Helper::AnsiToWideString((astring)s)
+#define mbtowc_h(s) ffhelper::Helper::AnsiToWideString((anstring)s)
 
-#define wctomb_h(s) ffhelper::Helper::WideToAnsiString((wstring)s)
+#define wctomb_h(s) ffhelper::Helper::WideToAnsiString((wnstring)s)
 
 namespace ffhelper
 {
@@ -58,9 +61,55 @@ namespace ffhelper
 				FreeLibrary(kernel32);
 		}
 
-		static wstring StringLastIndexOf(wstring str, wchar chr)
+		static wnstring MakeAppPath(wnstring fileName)
 		{
-			wstring ws;
+			uint4 size;
+			wnstring appPath=NULL;
+			wnstring modulePath = NULL;
+			
+			if (fileName == NULL)
+				return NULL;
+
+			modulePath = GetModulePath();
+
+			size = wcslen(modulePath);
+			size += wcslen(fileName);
+			size += 1; // +1 byte is for the \\ directory seperator
+			appPath = ALLOCSTRINGW(size);
+
+			wcscpy(appPath,modulePath);
+			
+			if (*fileName != L'\\')
+				wcscat(appPath,L"\\");
+
+			wcscat(appPath,fileName);
+
+			return (wnstring)appPath;
+		}
+
+		static wnstring GetModulePath()
+		{
+			uint4 len;
+			wchar *ptr;
+			ptr = ge_ModuleDirW;
+
+			if (*ptr != 0)
+				return (wnstring)ge_ModuleDirW;
+
+			len = (uint4)GetModuleFileNameW(NULL,ge_ModuleDirW,MAX_PATH);
+			ptr += len;
+			
+			while (*ptr != L'\\')
+			{
+				*ptr-- = 0;
+			}
+
+			return (wnstring)ge_ModuleDirW;
+		}
+
+		static wnstring StringLastIndexOf(wnstring str, wchar chr)
+		{
+			wnstring ws;
 
 			if (!str)
 				return NULL;
@@ -79,17 +128,17 @@ namespace ffhelper
 			return ws+1;
 		}
 
-		static wstring AnsiToWideString(astring str)
+		static wnstring AnsiToWideString(anstring str)
 		{
 			uint4 slen;
-			wstring wstr;
+			wnstring wstr;
 
 			if (!str)
 				return NULL;
 
 			slen = lstrlenA((LPCSTR)str);
 
-			wstr = (wstring)ALLOCSTRINGW(slen);
+			wstr = (wnstring)ALLOCSTRINGW(slen);
 
 			if (!wstr)
 				return NULL;
@@ -101,17 +150,17 @@ namespace ffhelper
 			return NULL;
 		}
 
-		static astring WideToAnsiString(wstring str)
+		static anstring WideToAnsiString(wnstring str)
 		{
 			uint4 slen;
-			astring astr;
+			anstring astr;
 
 			if (!str)
 				return NULL;
 
 			slen = lstrlenW((LPCWSTR)str);
 
-			astr = (astring)ALLOCSTRINGA(slen);
+			astr = (anstring)ALLOCSTRINGA(slen);
 
 			if (!astr)
 				return NULL;
@@ -123,7 +172,7 @@ namespace ffhelper
 			return NULL;
 		}
 
-		static wstring StringIndexOf(wstring str, wchar chr)
+		static wnstring StringIndexOf(wnstring str, wchar chr)
 		{
 			if (!str)
 				return NULL;
@@ -148,7 +197,7 @@ namespace ffhelper
 				SleepEx(milliseconds,FALSE);
 		}
 
-		static void GetCurrentDateTimeString(wstring buffer, uint4 maxCch, uint4 flag)
+		static void GetCurrentDateTimeString(wnstring buffer, uint4 maxCch, uint4 flag)
 		{
 			int4 wl;
 			SYSTEMTIME currTime;

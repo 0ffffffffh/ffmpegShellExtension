@@ -5,7 +5,7 @@
 #include "Preset.h"
 #include "FileList.h"
 
-FileReadWrite *PciOpenOutput(wstring outputFile)
+FileReadWrite *PciOpenOutput(wnstring outputFile)
 {
 	bool exists = FileReadWrite::FileExists(outputFile);
 
@@ -22,7 +22,7 @@ FileReadWrite *PciOpenOutput(wstring outputFile)
 	return output;
 }
 
-bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wstring outputFile)
+bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 {
 	FileReadWrite *fileIo;
 	PRESETOBJECT *po;
@@ -92,7 +92,7 @@ bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wstring outputFile)
 	return true;
 }
 
-bool PcCompilePreset(wstring presetFile, wstring outputFile, COMPILATION_EVENT_HANDLER eventHandler, void *arg)
+bool PcCompilePreset(wnstring presetFile, wnstring outputFile, COMPILATION_EVENT_HANDLER eventHandler, void *arg)
 {
 	bool result;
 	PresetFileLexer *lexer = new PresetFileLexer(presetFile,eventHandler,arg);
@@ -125,14 +125,14 @@ bool PcCompilePreset(wstring presetFile, wstring outputFile, COMPILATION_EVENT_H
 	return result;
 }
 
-bool PcDecompilePreset(wstring compiledPresetFile)
+bool PcDecompilePreset(wnstring compiledPresetFile)
 {
 	PRESET_FILE_HEADER pstHeader;
 	PRESET preset;
 	AutoString<wchar> codeText;
 	FileReadWrite *fileIo = new FileReadWrite(compiledPresetFile,OpenForRead,OpenExisting);
 	FileReadWrite *dcmpFile;
-	wstring decompFileName,dateStr;
+	wnstring decompFileName,dateStr;
 	bool status=false;
 	FilePathItem *fpi;
 	

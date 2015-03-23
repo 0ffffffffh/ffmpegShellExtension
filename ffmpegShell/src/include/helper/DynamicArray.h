@@ -66,12 +66,14 @@ public:
 		MemoryFree(this->array);
 	}
 
+	T None;
+
 	T & operator [](uint4 i)
 	{
 		if (i < this->size)
 			return this->array[i];
 
-		return NULL;
+		return this->None;
 	}
 
 	uint4 GetCount() const

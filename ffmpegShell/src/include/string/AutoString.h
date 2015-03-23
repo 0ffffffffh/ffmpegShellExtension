@@ -333,7 +333,7 @@ private:
 		return _Append(s,this->routineSlot->len((void *)s));
 	}
 
-	bool _AppendFormat(wstring format, va_list argList)
+	bool _AppendFormat(wnstring format, va_list argList)
 	{
 		uint4 reqBufLen;
 

@@ -24,7 +24,8 @@ typedef struct
 	wchar typeName[32];
 	MediaType mediaType;
 	OperationType opType;
-
 }PRESET;
 
-LinkedList<PRESET *> *PtLoadPreset(wstring presetFile);
+bool PtLoadPreset(wnstring presetFile);
+
+LinkedList<PRESET *> *PtGetPresetsByExtension(wchar *presetExt);

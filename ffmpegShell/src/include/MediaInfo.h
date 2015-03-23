@@ -199,7 +199,7 @@ private:
 		wsprintf(wcmdBuf,L"-print_format flat -show_format -show_streams \"%s\"",this->mediaFileName);
 
 		process->OnLineReceived = MediaInfo::OnStdoutLineReceived;
-		process->SetArg((wstring)wcmdBuf);
+		process->SetArg((wnstring)wcmdBuf);
 		process->Start(this);
 		process->Wait(true);
 
@@ -228,7 +228,7 @@ private:
 	}
 
 public:
-	MediaInfo(wstring mediaFile)
+	MediaInfo(wnstring mediaFile)
 	{
 		wcscpy(this->mediaFileName,mediaFile);
 

@@ -38,7 +38,7 @@ public:
 		return true;
 	}
 
-	void AddStatusLine(wstring status)
+	void AddStatusLine(wnstring status)
 	{
 		this->status->AppendFormat(L"%s\r\n",status);
 		SetControlText(IDC_TXTCOMPILELOG,this->status->GetNativeString(false));
