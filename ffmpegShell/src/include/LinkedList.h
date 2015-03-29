@@ -5,6 +5,8 @@
 
 typedef void (*NODE_ITEM_DISPOSER)(void *object);
 
+#define LL_FOREACH(type, nodeVar, list) for (LinkedListNode<type> *nodeVar = list->Begin(); \
+	nodeVar != NULL; nodeVar = nodeVar->Next()) \
 
 template <class T>
 class LinkedListNode
@@ -75,6 +77,8 @@ private:
 	NODE_ITEM_DISPOSER disposer;
 	int count;
 
+	typedef bool (*LLIST_ITERATION)(T val, vptr arg);
+
 	void InsertInternal(LinkedListNode<T> *node)
 	{
 		AcquireSpinLock(&this->synchLock);
@@ -130,11 +134,18 @@ public:
 		return true;
 	}
 
-	
-	void Remove(LinkedListNode<T> *node)
+	void AttachNode(LinkedListNode<T> *node)
+	{
+		if (node == NULL)
+			return;
+
+		InsertInternal(node);
+	}
+
+	bool DetachNode(LinkedListNode<T> *node)
 	{
 		if (!node)
-			return;
+			return false;
 
 		AcquireSpinLock(&this->synchLock);
 
@@ -162,6 +173,14 @@ public:
 		this->count -= 1;
 
 		ReleaseSpinLock(&this->synchLock);
+
+		return true;
+	}
+
+	void Remove(LinkedListNode<T> *node)
+	{
+		if (!DetachNode(node))
+			return;
 
 		if (this->disposer != NULL)
 			this->disposer(node->value);

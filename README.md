@@ -30,7 +30,7 @@ preset
 
 "name" (string) : it contains preset description. this value will be appear as the menu command text.
 
-"command" (string) : ffmpeg conversion command. $INF{1...n} and $OUTF constants represents the input and output filename for ffmpegShell Internal. 
+"command" (string) : ffmpeg conversion command. $INF{[ext1...extn]} and $OUTF constants represents the input and output filename for ffmpegShell Internal. 
 
 
 "mediaType" (mediatype) : media file type. it can be one of the {audio, video} values.
@@ -48,7 +48,7 @@ preset
 preset
 {
 	name : "Embed subtitle";
-	command : "-i $INF1 -vf subtitles=$INF2 $OUTF";
+	command : "-i $INF[mp4] -vf subtitles=$INF[srt,sub] $OUTF";
 	mediaType : video;
 	operationType : combination;
 	sourceFormat : "mp4";

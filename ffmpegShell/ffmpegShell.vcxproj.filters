@@ -168,6 +168,9 @@
     <ClInclude Include="src\include\ffmpeg\MediaInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\include\ffmpeg\CommandExecutor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ffmpegShell.rc">

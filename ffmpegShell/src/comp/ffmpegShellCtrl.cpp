@@ -34,7 +34,6 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	wchar fileTemp[MAX_PATH];
 	wnstring compiledPresetPath;
 	UINT i;
-
 	
 	if (pdtobj == NULL)
 		return S_OK; //Its a directory background handler. simply return ok
@@ -49,7 +48,7 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 
 	if (!SUCCEEDED(Hr))
 	{
-		DbDebugBreak();
+		DBPRINT_CURR("Hresult: %lu",Hr);
 		return E_FAIL;
 	}
 
@@ -137,10 +136,10 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 					int4 packOffset=0;
 					vptr nodePtr = node->GetValue();
 
-					argPack = ALLOCPACKET(sizeof(PRESET *) + sizeof(FILEPATHITEM *));
+					argPack = ALLOCPACKET(sizeof(PRESET *) + sizeof(FileList *));
 
 					packOffset = WRITEPACKET(argPack,PRESET *,packOffset,&nodePtr);
-					WRITEPACKET(argPack,FILEPATHITEM *,packOffset,&filePath);
+					WRITEPACKET(argPack,FileList *,packOffset,&g_fileObjectList);
 
 					MeAddItem(g_menu,MenuHandlers::StartConvertingOperation,argPack,(wnstring)node->GetValue()->name);
 					MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
@@ -204,6 +203,7 @@ STDMETHODIMP CffmpegShellCtrl::GetCommandString(UINT_PTR idCmd,UINT uType,UINT *
 
 void CffmpegShellCtrl::FinalRelease()
 {
-	CURRENTROUTINE();
+	if (g_fileObjectList != NULL)
+		g_fileObjectList->Clear();
 }
 

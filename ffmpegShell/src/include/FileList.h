@@ -388,6 +388,8 @@ public:
 		InternalClear();
 	}
 
+
+
 	FILEPATHITEM *GetLongestObject() const
 	{
 		return longestItem;
@@ -396,6 +398,11 @@ public:
 	FILEPATHITEM *GetLastObject() const
 	{
 		return this->objectList->End()->GetValue();
+	}
+
+	LinkedList<FILEPATHITEM *> *GetList() const
+	{
+		return this->objectList;
 	}
 };
 

@@ -16,6 +16,10 @@
 
 #define ALLOCSTRINGA(len) ALLOCARRAY(achar,(len+1))
 
+#define ZEROSTRINGW(str,len) RtlZeroMemory(str,sizeof(wchar) * len)
+
+#define ZEROSTRINGA(str, len) RtlZeroMemory(str, sizeof(achar) * len)
+
 #define FREESTRING(str) FREEARRAY(str)
 
 //Object size in byte

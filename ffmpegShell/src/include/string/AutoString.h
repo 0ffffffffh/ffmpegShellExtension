@@ -393,6 +393,13 @@ public:
 		Free(!this->destroyOriginal);
 	}
 
+	AutoString<T> &operator=(const T *s)
+	{
+		Init();
+		Set((T *)s);
+		return *this;
+	}
+
 	AutoString<T> &operator+(const AutoString<T> &s)
 	{
 		AutoString<T> *newStr = new AutoString<T>(this->length + s.length);
@@ -437,6 +444,26 @@ public:
 		return this->routineSlot->cmp(this->str,s->str) == 0;
 	}
 
+	bool operator<(const T *s) const
+	{
+		return this->routineSlot->cmp(this->str,s) < 0;
+	}
+
+	bool operator<(const AutoString<T> *s) const
+	{
+		return this->operator<(s->str);
+	}
+
+	bool operator>(const T *s) const
+	{
+		return this->routineSlot->cmp(this->str,s) > 0;
+	}
+
+	bool operator>(const AutoString<T> *s) const
+	{
+		return this->operator>(s->str);
+	}
+
 	AutoString<T> &SubString(uint4 startIndex, uint4 count)
 	{
 		AutoString<T> *newStr;
@@ -464,6 +491,11 @@ public:
 			return -1;
 
 		return (int4)(result - this->str);
+	}
+
+	bool Contains(T *s)
+	{
+		return IndexOf(s) > -1;
 	}
 
 	void TrimLeft()
@@ -568,6 +600,36 @@ public:
 	bool Insert(uint4 insertIndex, const T *s)
 	{
 		NOTIMPLEMENTED_R(false);
+	}
+
+	AutoString<T> & Replace(uint4 startPos, uint4 endPos, const T* with)
+	{
+		AutoString<T> *r;
+
+		T *tmpBuf,*p;
+		T *psrc;
+
+		uint4 len=endPos-startPos;
+
+		//IMPORTANT: That position based replace 
+		//function is a temporary & ugly of course.
+		//i'm gonna implement correct way later :)
+
+		tmpBuf = (T *)MemoryAlloc(this->SIZE_PER_CHR * (len+1),true);
+		p = tmpBuf;
+		psrc = this->str + startPos;
+
+		while (len--)
+			*p++ = *psrc++;
+
+		r = new AutoString<T>();
+
+		(*r) += Replace(tmpBuf,with);
+
+		MemoryFree(tmpBuf);
+
+		return *r;
+		
 	}
 
 	AutoString<T> & Replace(const T *what, const T* with)

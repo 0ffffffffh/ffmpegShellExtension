@@ -27,6 +27,8 @@ VOID __fastcall DbDebugBreak();
 
 #define CURRENTROUTINE() DPRINT("Entered %s()",__FUNCTION__)
 
+#define DBPRINT_CURR(str, ...) DbDebugPrint(__FILE__ " -> " __FUNCTION__ " at %d | " str, __LINE__, __VA_ARGS__)
+
 #define ASSERT(exp) { \
 	char __assertbuf[256]={0}; \
 	if (!(exp)) { \

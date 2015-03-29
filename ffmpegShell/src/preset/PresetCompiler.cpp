@@ -22,6 +22,7 @@ FileReadWrite *PciOpenOutput(wnstring outputFile)
 	return output;
 }
 
+
 bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 {
 	FileReadWrite *fileIo;
@@ -37,8 +38,7 @@ bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 	{
 		presetHeader.magic = PCF_MAGIC;
 		presetHeader.presetCount = 0;
-		memset(presetHeader.reserved,0xcb,sizeof(presetHeader.reserved));
-
+		
 		written = fileIo->Write((byte *)&presetHeader,-1,sizeof(PRESET_FILE_HEADER));
 
 		//validate written size

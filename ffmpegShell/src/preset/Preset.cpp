@@ -6,15 +6,6 @@
 
 using namespace std;
 
-struct stringComparer
-{
-public:
-	bool operator()(const wchar *x, const wchar *y) const
-	{
-		return wcscmp(x,y);
-	}
-};
-
 map<wchar *, LinkedList<PRESET *> *, stringComparer> *gp_presetList=NULL;
 
 void PtxInsertPresetToMappedList(PRESET *preset)

@@ -4,6 +4,7 @@
 #include "ui\UI.h"
 #include "ui\DialogImpls.h"
 #include "ffmpeg\MediaInfo.h"
+#include "ffmpeg\CommandExecutor.h"
 #include "helper\ArgPack.h"
 
 #define DECL_HANDLER(handlerName) static bool handlerName(vptr arg)
@@ -45,20 +46,22 @@ public:
 	{
 		vptr argPack;
 		WCHAR fileName[MAX_PATH];
-		FILEPATHITEM *file;
+		FileList *fileList;
 		PRESET *preset;
 		int4 pkOff=0;
 
 		argPack = CASTARG(vptr);
 
 		pkOff = READPACKET(argPack,PRESET *,pkOff,&preset);
-		pkOff = READPACKET(argPack,FILEPATHITEM *,pkOff,&file);
+		pkOff = READPACKET(argPack,FileList *,pkOff,&fileList);
+
+		FREEPACKET(argPack);
 
 		ffmpegProcess *proc = new ffmpegProcess(FFMPEG_PROCESS_TYPE::FFMPEG);
 
-		FlGeneratePathString(file,fileName,MAX_PATH,PAS_NONE,NULL);
+		CommandExecutor cmexec;
+		cmexec.Execute(preset,fileList);
 		
-
 		HE_SUCCESS;
 	}
 

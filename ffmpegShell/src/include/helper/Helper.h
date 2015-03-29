@@ -32,6 +32,16 @@ extern wchar ge_ModuleDirW[MAX_PATH];
 
 extern HINSTANCE ge_ModuleInstance;
 
+struct stringComparer
+{
+public:
+	bool operator() (const wchar *x, const wchar *y) const
+	{
+		return wcscmp(x,y) < 0;
+	}
+
+};
+
 namespace ffhelper
 {
 	class Helper
@@ -239,7 +249,7 @@ namespace ffhelper
 	template <class T>
 	class DataManipHelper
 	{
-	private:
+	public:
 		static void ShiftBlock(T *data, uint4 index, uint4 shiftCount, uint4 dataLen, bool fillZero, bool toLeft)
 		{
 			const int4 m[2] = {1,-1};
@@ -262,7 +272,6 @@ namespace ffhelper
 				memset(startPtr,0,abs(destPtr - startPtr));
 		}
 
-	public:
 		static uint4 EraseBlock(T *data, uint4 filledLen, uint4 location, uint4 count)
 		{
 			byte *byteData = (byte *)data;

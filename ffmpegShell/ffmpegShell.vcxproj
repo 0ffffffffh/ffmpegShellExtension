@@ -283,6 +283,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\include\ffmpeg\CommandExecutor.h" />
     <ClInclude Include="src\include\helper\ArgPack.h" />
     <ClInclude Include="src\include\helper\ByteBuffer.h" />
     <ClInclude Include="src\include\debug.h" />
