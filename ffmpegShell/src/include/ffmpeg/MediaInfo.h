@@ -203,7 +203,7 @@ private:
 		process->Start(this);
 		process->Wait(true);
 
-		for (int i=0;i<this->ffprobeInfoList.GetCount(); i++)
+		for (uint4 i=0;i<this->ffprobeInfoList.GetCount(); i++)
 		{
 			kvChain = this->ffprobeInfoList[i];
 

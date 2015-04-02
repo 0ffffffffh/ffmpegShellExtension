@@ -26,6 +26,9 @@ typedef struct
 	OperationType opType;
 }PRESET;
 
+bool PtDestroyPresets();
+bool PtReLoadPreset(wnstring presetFile);
 bool PtLoadPreset(wnstring presetFile);
+
 
 LinkedList<PRESET *> *PtGetPresetsByExtension(wchar *presetExt);

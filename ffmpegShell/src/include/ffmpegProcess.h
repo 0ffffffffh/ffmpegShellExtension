@@ -37,7 +37,7 @@ private:
 
 public:
 
-	ffmpegProcess(FFMPEG_PROCESS_TYPE type = FFMPEG_PROCESS_TYPE::FFMPEG)
+	ffmpegProcess(FFMPEG_PROCESS_TYPE type = FFMPEG)
 	{
 		this->OnLineReceived = NULL;
 		this->procType = type;

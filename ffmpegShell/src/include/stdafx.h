@@ -17,6 +17,10 @@
 #pragma warning(disable : 4996)
 #endif
 
+//Disable possible loss of data
+#pragma warning (disable : 4244)
+#pragma warning (disable : 4267)
+
 #pragma warning (disable : 4003)
 
 #ifdef _UNICODE

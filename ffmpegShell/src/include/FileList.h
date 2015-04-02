@@ -1,6 +1,8 @@
 #include "Stdafx.h"
 #include "Memory.h"
 #include "LinkedList.h"
+#include "RefCount.h"
+
 
 #ifndef __FILELIST__
 #define __FILELIST__
@@ -231,6 +233,27 @@ static UINT FlGeneratePathString(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchM
 	return writtenBytes;
 }
 
+static UINT FlMakeFilenameWithParts(LPWSTR buffer, UINT cchMax, LPWSTR directory, LPWSTR name, LPWSTR extension)
+{
+	FILEPATHITEM *item = ALLOCOBJECT(FILEPATHITEM);
+	UINT fnameLen=0;
+
+	if (!item)
+		return 0;
+
+	if (buffer == NULL)
+		return 0;
+
+	FlSetNodePart(item,directory,OPL_FULLPATH);
+	FlSetNodePart(item,name, OPL_NAME);
+	FlSetNodePart(item,extension,OPL_EXTENSION);
+
+	fnameLen = FlGeneratePathString(item,buffer,cchMax,PAS_NONE,NULL);
+
+	FREEOBJECT(item);
+
+	return fnameLen;
+}
 
 class FilePathItem
 {
@@ -327,7 +350,7 @@ public:
 };
 
 
-class FileList
+class FileList : public RefCount
 {
 private:
 	LinkedList<FILEPATHITEM *> *objectList;
@@ -358,6 +381,13 @@ private:
 	void InternalClear()
 	{
 		this->objectList->Clear();
+	}
+
+protected:
+	void OnReleased()
+	{
+		DPRINT("Released");
+		InternalClear();
 	}
 
 public:

@@ -6,6 +6,7 @@
 #include "ffmpeg\MediaInfo.h"
 #include "ffmpeg\CommandExecutor.h"
 #include "helper\ArgPack.h"
+#include "Preset.h"
 
 #define DECL_HANDLER(handlerName) static bool handlerName(vptr arg)
 
@@ -57,8 +58,6 @@ public:
 
 		FREEPACKET(argPack);
 
-		ffmpegProcess *proc = new ffmpegProcess(FFMPEG_PROCESS_TYPE::FFMPEG);
-
 		CommandExecutor cmexec;
 		cmexec.Execute(preset,fileList);
 		
@@ -82,6 +81,7 @@ public:
 
 	DECL_HANDLER(CompilePresetHandler)
 	{
+		bool ret;
 		WCHAR fileName[MAX_PATH];
 		wnstring outputFile;
 
@@ -98,7 +98,12 @@ public:
 
 		FlGeneratePathString(item,fileName,MAX_PATH,PAS_NONE,NULL);
 		
-		HE_RET(PcCompilePreset(fileName,outputFile,MenuHandlers::CompilationEventHandler,dlg));
+		ret = PcCompilePreset(fileName,outputFile,MenuHandlers::CompilationEventHandler,dlg);
+
+		if (ret)
+			PtReLoadPreset(outputFile);
+
+		HE_RET(ret);
 	}
 
 	DECL_HANDLER(OpenPresetSettingsDialog)

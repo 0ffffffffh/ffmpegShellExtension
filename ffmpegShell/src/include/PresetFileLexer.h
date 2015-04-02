@@ -7,7 +7,7 @@
 #include "FileReadWrite.h"
 #include "PresetParser.h"
 
-const char UNICODE_MARK[] = {0xff,0xfe};
+const byte UNICODE_MARK[] = {0xff,0xfe};
 
 const int STRING_BUF_MAX_LEN = 128;
 
@@ -101,7 +101,7 @@ public:
 	{
 		wchar c;
 		wchar buffer[STRING_BUF_MAX_LEN] = {0};
-		char magic[2];
+		byte magic[2];
 		int bufIndex=0;
 		bool commentOut=false;
 		bool quoted=false;
@@ -117,7 +117,7 @@ public:
 			if (memcmp(magic,UNICODE_MARK,sizeof(UNICODE_MARK)))
 			{
 				ansiMode = true;
-				this->fileIo->Seek(0,SeekType::Begin);
+				this->fileIo->Seek(0,Begin);
 			}
 		}
 

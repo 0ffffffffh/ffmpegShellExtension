@@ -11,6 +11,9 @@
 #define CMVS_BROP			0x00000004
 #define CMVS_BRCL			0x00000008
 
+#define CMVT_INF			0x00000001
+#define CMVT_OUTF			0x00000002
+
 typedef struct
 {
 	LinkedList<wchar *> *varExt;
@@ -52,9 +55,9 @@ static __forceinline bool __try_set_vartype(wchar *buf, __cmd_var *cvar)
 	cvar->type = 0;
 
 	if (!wcsnicmp(buf,L"INF\0",4))
-		cvar->type = 1;
+		cvar->type = CMVT_INF;
 	else if (!wcsnicmp(buf,L"OUTF\0",5))
-		cvar->type = 2;
+		cvar->type = CMVT_OUTF;
 
 	return cvar->type > 0;
 }
@@ -95,7 +98,7 @@ private:
 					{
 						if (__try_set_vartype(buf,cvar))
 						{
-							if (cvar->type == 2)
+							if (cvar->type == CMVT_OUTF)
 								(*outfCount)++;
 
 							cvar->epos = i-1;
@@ -141,7 +144,7 @@ private:
 						reset_buf();
 					}
 
-					if (cvar->type == 2)
+					if (cvar->type == CMVT_OUTF)
 						(*outfCount)++;
 					
 					varList->Insert(cvar);
@@ -196,7 +199,7 @@ private:
 
 					if (__try_set_vartype(buf,cvar))
 					{
-						if (cvar->type == 2)
+						if (cvar->type == CMVT_OUTF)
 							(*outfCount)++;
 						
 						varList->Insert(cvar);
@@ -220,7 +223,7 @@ private:
 		{
 			cvar = node->GetValue();
 
-			if (cvar->type == 2)
+			if (cvar->type == CMVT_OUTF)
 				continue;
 
 			LL_FOREACH(wchar *,extNode, cvar->varExt)
@@ -238,25 +241,40 @@ private:
 	wnstring GenerateActualFFmpegCommand(const wchar *cmd, DynamicArray<__cmd_var *> *varList)
 	{
 		__cmd_var *var;
-		FILEPATHITEM *fileItem;
+		FILEPATHITEM *fileItem,*outFileInfo;
 		wchar *fileName = ALLOCSTRINGW(MAX_PATH);
 		AutoStringW str(cmd);
 		uint4 shiftLen=0, fNameLen=0,copyPos=0,copyLen=0;
 
 		
-		for (int4 i=0; i<varList->GetCount();i++)
+		for (uint4 i=0; i<varList->GetCount();i++)
 		{
 			var = (*varList)[i];
 
 			fileItem = (FILEPATHITEM *)var->lfo;
 
-			if (var->type == 2)
+			//FIX: Make dynamic
+			if (var->type == CMVT_OUTF)
 			{
-				wcscpy(fileName,L"D:\\output.bin");
-				fNameLen = wcslen(fileName);
+				//TODO: Try correction
+				if (outFileInfo == NULL)
+					return NULL;
+
+				fNameLen = FlGeneratePathString(outFileInfo,fileName,MAX_PATH,PAS_OBJECTNAME,L"output");
 			}
 			else
+			{
+
+				if (fileItem == NULL)
+				{
+					//There is no linked fileItem for the current variable
+					return NULL;
+				}
+
+				//we'll using the first input filename to generating output fname.
+				outFileInfo = fileItem;
 				fNameLen = FlGeneratePathString(fileItem,fileName,MAX_PATH,PAS_NONE,NULL);
+			}
 
 			var->bpos += shiftLen;
 			var->epos += shiftLen;
@@ -268,7 +286,7 @@ private:
 			ZEROSTRINGW(fileName,MAX_PATH);
 		}
 
-		return NULL;
+		return str.GetNativeStringWithNoDestroy();
 	}
 
 public:
@@ -342,7 +360,14 @@ public:
 
 		ffmpegCmd = GenerateActualFFmpegCommand(preset->command,&processedVarList);
 
-		DPRINT("Actual command line: %s",ffmpegCmd);
+		fileList->Release();
+
+		process = new ffmpegProcess(FFMPEG);
+
+		process->OnLineReceived = CommandExecutor::OnStdoutLineReceived;
+		process->SetArg(ffmpegCmd);
+		process->Start(this);
+		process->Wait(true);
 
 cleanUp:
 		delete varList;

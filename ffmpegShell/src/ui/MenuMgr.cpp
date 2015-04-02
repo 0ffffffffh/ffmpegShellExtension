@@ -138,7 +138,7 @@ void MeDeleteMenuContainer(MENUCONTAINER *container)
 	}
 }
 
-int4 _MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, MenuItemType type, wnstring menuString, va_list argList)
+int4 _MeAddItem(MENUCONTAINER *container, MenuInvokeStyle style, MENU_ITEM_HANDLER menuHandler, vptr arg, MenuItemType type, wnstring menuString, va_list argList)
 {
 	MENUCONTAINERITEM *menuItem;
 	wnstring str = NULL;
@@ -197,6 +197,7 @@ int4 _MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr ar
 		break;
 	}
 
+	menuItem->invokeStyle = style;
 	menuItem->type = type;
 
 	if (type == Normal)
@@ -214,7 +215,7 @@ int4 _MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr ar
 
 MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wnstring menuString)
 {
-	int4 index = _MeAddItem(container,NULL,NULL,Slot,menuString,NULL);
+	int4 index = _MeAddItem(container,NonInvokable,NULL,NULL,Slot,menuString,NULL);
 
 	if (index > 0)
 		return MC((*(container->c.items))[index]->subItems);
@@ -234,7 +235,38 @@ int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg
 
 	va_start(argList,menuString);
 
-	result = _MeAddItem(container,menuHandler,arg,Normal,menuString,argList);
+	result = _MeAddItem(container, 
+		ShortTimeHandler, 
+		menuHandler,
+		arg,
+		Normal,
+		menuString,
+		argList);
+
+	va_end(argList);
+
+	return result;
+}
+
+int4 MeAddItem2(MENUCONTAINER *container, MenuInvokeStyle style, MENU_ITEM_HANDLER menuHandler, vptr arg, wnstring menuString, ...)
+{
+	int4 result;
+	va_list argList;
+
+#ifndef _DEBUG
+	if (!menuHandler)
+		return -1;
+#endif
+
+	va_start(argList,menuString);
+
+	result = _MeAddItem(container, 
+		style, 
+		menuHandler,
+		arg,
+		Normal,
+		menuString,
+		argList);
 
 	va_end(argList);
 
@@ -243,7 +275,7 @@ int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg
 
 bool MeAddSeperator(MENUCONTAINER *container)
 {
-	return _MeAddItem(container,NULL,NULL,Seperator,NULL,NULL)>0;
+	return _MeAddItem(container,NonInvokable,NULL,NULL,Seperator,NULL,NULL)>0;
 }
 
 bool _MeActivateMenu(MENUCONTAINERINTERNAL *container)
@@ -293,15 +325,48 @@ HRESULT MeActivateMenu(MENUCONTAINER *container,HMENU parentMenu)
 	return MAKE_HRESULT(SEVERITY_SUCCESS,FACILITY_NULL,container->c.idCmdFirst+container->c.cmdIndex - container->c.idCmdFirst + 1);
 }
 
+DWORD WINAPI __MenuInvokeWorker(PVOID arg)
+{
+	MENUCONTAINERITEM *menuItem;
+
+	if (arg == NULL)
+		return 1;
+	
+	menuItem = (MENUCONTAINERITEM *)arg;
+
+	menuItem->handler(menuItem->handlerArg);
+
+	return 0;
+}
+
+bool _MeiInvokeOnSeperateThread(MENUCONTAINERITEM *menuItem)
+{
+	DWORD tid;
+	
+	return CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)__MenuInvokeWorker,menuItem,0,&tid) !=
+		INVALID_HANDLE_VALUE;
+}
 
 bool MeInvokeHandler(MENUCONTAINER *container, int4 cmdId)
 {
 	MENU_ITEM_HANDLER handler;
+	MENUCONTAINERITEM *menuItem;
 
-	handler = (*container->orderedItems)[cmdId]->handler;
+	menuItem = (*container->orderedItems)[cmdId];
+
+	if (!menuItem)
+		return false;
+
+	if (menuItem->invokeStyle == NonInvokable)
+		return false;
+
+	if (menuItem->invokeStyle == LongTimeHandler)
+		return _MeiInvokeOnSeperateThread(menuItem);
+
+	handler = menuItem->handler;
 
 	if (handler != NULL)
-		return handler((*container->orderedItems)[cmdId]->handlerArg);
+		return handler(menuItem->handlerArg);
 
 	return false;
 }

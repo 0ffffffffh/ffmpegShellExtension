@@ -56,7 +56,7 @@ bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 			return false;
 		}
 
-		fileIo->Seek(presetHeader.presetCount * sizeof(PRESET),SeekType::Current);
+		fileIo->Seek(presetHeader.presetCount * sizeof(PRESET),Current);
 	}
 
 	for (LinkedListNode<PRESETOBJECT *> *node = presets->Begin();
@@ -77,7 +77,7 @@ bool PciCompilePreset(LinkedList<PRESETOBJECT *> *presets, wnstring outputFile)
 	}
 
 	presetHeader.presetCount += presets->GetCount();
-	fileIo->Seek(0,SeekType::Begin);
+	fileIo->Seek(0,Begin);
 
 	fileIo->Write((byte *)&presetHeader,0,sizeof(PRESET_FILE_HEADER));
 

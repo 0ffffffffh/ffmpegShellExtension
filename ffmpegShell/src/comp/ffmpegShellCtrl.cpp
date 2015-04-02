@@ -59,10 +59,17 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 
 	FREESTRING(compiledPresetPath);
 
+	IntLoadSettings();
+
 	DbDebugPrint("fileObjectList = %p",g_fileObjectList);
 
 	if (g_fileObjectList == NULL)
 		g_fileObjectList = new FileList();
+
+	if (g_fileObjectList->IsReferenced())
+		g_fileObjectList->Release();
+
+	g_fileObjectList->AddRef();
 	
 	fileCount = DragQueryFileW((HDROP)stgMedData.hGlobal,0xFFFFFFFF,NULL,0);
 
@@ -105,7 +112,9 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 	g_menu = MeCreateMenuContainer(idCmdFirst,idCmdLast,uFlags);
 
 	if (g_fileObjectList != NULL)
+	{
 		filePath = g_fileObjectList->GetLastObject();
+	}
 
 	MeAddItem(g_menu,MenuHandlers::ShowSettings,NULL,L"Settings");
 
@@ -129,6 +138,8 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 			
 			if (matchedPresets != NULL)
 			{
+				g_fileObjectList->AddRef();
+				
 				for (LinkedListNode<PRESET *> *node = matchedPresets->Begin();
 					node != NULL;
 					node = node->Next())
@@ -136,12 +147,14 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 					int4 packOffset=0;
 					vptr nodePtr = node->GetValue();
 
+					
 					argPack = ALLOCPACKET(sizeof(PRESET *) + sizeof(FileList *));
 
 					packOffset = WRITEPACKET(argPack,PRESET *,packOffset,&nodePtr);
 					WRITEPACKET(argPack,FileList *,packOffset,&g_fileObjectList);
 
-					MeAddItem(g_menu,MenuHandlers::StartConvertingOperation,argPack,(wnstring)node->GetValue()->name);
+
+					MeAddItem2(g_menu,LongTimeHandler,MenuHandlers::StartConvertingOperation,argPack,(wnstring)node->GetValue()->name);
 					MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
 				}
 			}
@@ -204,6 +217,6 @@ STDMETHODIMP CffmpegShellCtrl::GetCommandString(UINT_PTR idCmd,UINT uType,UINT *
 void CffmpegShellCtrl::FinalRelease()
 {
 	if (g_fileObjectList != NULL)
-		g_fileObjectList->Clear();
+		g_fileObjectList->Release();
 }
 

@@ -658,7 +658,7 @@ public:
 		else
 			shiftLeft = true;
 
-		for (int i=0;i<foundPos.GetCount();i++)
+		for (uint4 i=0;i<foundPos.GetCount();i++)
 		{
 			pos = foundPos[i] + findStrLen;
 			copyPos = foundPos[i];
@@ -743,6 +743,12 @@ public:
 		CopyString(strInstance,this->length);
 
 		return strInstance;
+	}
+
+	T *GetNativeStringWithNoDestroy()
+	{
+		this->destroyOriginal = false;
+		return this->str;
 	}
 };
 

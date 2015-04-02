@@ -14,10 +14,18 @@ typedef enum
 	Seperator
 }MenuItemType;
 
+typedef enum
+{
+	NonInvokable,
+	ShortTimeHandler,
+	LongTimeHandler
+}MenuInvokeStyle;
+
 typedef struct 
 {
 	uint4 cmdId;
 	MenuItemType type;
+	MenuInvokeStyle invokeStyle;
 	wnstring menuStr;
 	wchar verb[8];
 	MENU_ITEM_HANDLER handler;
@@ -54,6 +62,8 @@ void MeDeleteMenuContainer(MENUCONTAINER *container);
 MENUCONTAINER *MeAddSlot(MENUCONTAINER *container, wnstring menuString);
 
 int4 MeAddItem(MENUCONTAINER *container, MENU_ITEM_HANDLER menuHandler, vptr arg, wnstring menuString, ...);
+
+int4 MeAddItem2(MENUCONTAINER *container, MenuInvokeStyle style, MENU_ITEM_HANDLER menuHandler, vptr arg, wnstring menuString, ...);
 
 bool MeAddSeperator(MENUCONTAINER *container);
 
