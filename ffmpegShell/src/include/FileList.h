@@ -17,9 +17,13 @@ typedef enum tagOBJECTTYPE
 #define OPL_NAME		1
 #define OPL_EXTENSION	2
 
-#define PAS_NONE	   0x00000000
-#define PAS_OBJECTNAME 0x00000001
-#define PAS_EXTENSION  0x00000002
+#define PAS_NONE					0x00000000
+#define PAS_OBJECTNAME				0x00000001
+#define PAS_EXTENSION				0x00000002
+
+
+#define FL_FLAG_QUOTE_SURROUNDED	0x00000001
+#define FL_FLAG_ZERO_BUFFER			0x00000002
 
 typedef struct
 {
@@ -185,12 +189,11 @@ static BOOL FlSetNodePart(FILEPATHITEM *node, LPCWSTR str, DWORD type)
 }
 
 
-static UINT FlGeneratePathString(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchMax, DWORD appendStyle,LPCWSTR appendString)
+static UINT FlGeneratePathString2(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchMax, DWORD flag, DWORD appendStyle,LPCWSTR appendString)
 {
-	UNREFERENCED_PARAMETER(cchMax);
-
 	BOOL noExt=item->type == Folder;
 	UINT writtenBytes=0;
+	UINT extraRequiredLen=2; //default 2 for \ seperators
 
 	*formatBuf = 0;
 
@@ -198,15 +201,29 @@ static UINT FlGeneratePathString(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchM
 	if (item->type == File && item->objectPartLengths[OPL_EXTENSION] == 0)
 		noExt = TRUE;
 
+	if (flag & FL_FLAG_QUOTE_SURROUNDED)
+		extraRequiredLen += 2;
+
 	if ((item->objectPartLengths[0] +
 		item->objectPartLengths[1] +
-		item->objectPartLengths[2] + 2) > cchMax)
+		item->objectPartLengths[2] + 
+		extraRequiredLen) > cchMax)
 	{
 		return 0;
 	}
 
+	if (flag & FL_FLAG_ZERO_BUFFER)
+		RtlZeroMemory(formatBuf,sizeof(WCHAR) * cchMax);
+
+	if (flag & FL_FLAG_QUOTE_SURROUNDED)
+	{
+		*formatBuf = L'"';
+		writtenBytes = 1;
+
+	}
+
 	//Write first "DIRECTORY\FILENAME" 
-	writtenBytes = wsprintfW(formatBuf,L"%s\\%s",item->objectFullPath,item->objectName);
+	writtenBytes += wsprintfW(formatBuf+writtenBytes,L"%s\\%s",item->objectFullPath,item->objectName);
 
 	if (!noExt)
 	{
@@ -230,7 +247,18 @@ static UINT FlGeneratePathString(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchM
 		writtenBytes += wsprintfW(formatBuf+writtenBytes,L"%s",appendString);
 	}
 
+	if (flag & FL_FLAG_QUOTE_SURROUNDED)
+	{
+		*(formatBuf+writtenBytes) = L'"';
+		writtenBytes++;
+	}
+
 	return writtenBytes;
+}
+
+static UINT FlGeneratePathString(FILEPATHITEM *item, LPWSTR formatBuf, UINT cchMax, DWORD appendStyle,LPCWSTR appendString)
+{
+	return FlGeneratePathString2(item,formatBuf,cchMax,0,appendStyle,appendString);
 }
 
 static UINT FlMakeFilenameWithParts(LPWSTR buffer, UINT cchMax, LPWSTR directory, LPWSTR name, LPWSTR extension)

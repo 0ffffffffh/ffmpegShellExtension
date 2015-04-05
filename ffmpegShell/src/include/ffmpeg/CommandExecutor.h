@@ -62,6 +62,11 @@ static __forceinline bool __try_set_vartype(wchar *buf, __cmd_var *cvar)
 	return cvar->type > 0;
 }
 
+static __forceinline int4 iscmdspecialchr(wchar chr)
+{
+	return chr == L'"' || chr == L'.';
+}
+
 static int cvarArrayComparer(__cmd_var *v1, __cmd_var *v2)
 {
 	return v1->bpos - v2->bpos;
@@ -92,7 +97,7 @@ private:
 		{
 			if (flag & CMVS_VARSIGN)
 			{
-				if (iswspace(*p))
+				if (iswspace(*p) || iscmdspecialchr(*p))
 				{
 					if (buf[0]>0)
 					{
@@ -260,7 +265,13 @@ private:
 				if (outFileInfo == NULL)
 					return NULL;
 
-				fNameLen = FlGeneratePathString(outFileInfo,fileName,MAX_PATH,PAS_OBJECTNAME,L"output");
+				fNameLen = FlGeneratePathString2(
+					outFileInfo,
+					fileName,
+					MAX_PATH,
+					FL_FLAG_ZERO_BUFFER | FL_FLAG_SURROUND_QUOTES,
+					PAS_OBJECTNAME,
+					L"output");
 			}
 			else
 			{
@@ -273,7 +284,14 @@ private:
 
 				//we'll using the first input filename to generating output fname.
 				outFileInfo = fileItem;
-				fNameLen = FlGeneratePathString(fileItem,fileName,MAX_PATH,PAS_NONE,NULL);
+
+				fNameLen = FlGeneratePathString2(
+					fileItem,
+					fileName,
+					MAX_PATH,
+					FL_FLAG_ZERO_BUFFER | FL_FLAG_SURROUND_QUOTES,
+					PAS_NONE,
+					NULL);
 			}
 
 			var->bpos += shiftLen;

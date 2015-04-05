@@ -14,10 +14,11 @@ typedef struct
 
 typedef struct
 {
-	wnstring					commandLine;
+	wnstring				commandLine;
 	HANDLE					processHandle;
 	HANDLE					stdOutWorkerHandle;
 	HANDLE					stdOutPipeHandle;
+	HANDLE					stdErrPipeHandle;
 	RECEIVE_CALLBACK_INFO	stdOutReceiveCallback;
 	BOOL					running;
 }PROCESS;

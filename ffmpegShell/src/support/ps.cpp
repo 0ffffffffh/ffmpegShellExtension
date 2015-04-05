@@ -20,17 +20,27 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 {
 	PROCESS *process = (PROCESS *)p;
 	DWORD readLen=0;
-	int pos=0,bufLen=0;
+	int4 pos=0,bufLen=0;
+	uint4 handleIndex=0;
 	ByteBuffer buffer(0x1000);
 	BOOL keepRun=TRUE,crLf=FALSE;
+
+	HANDLE stdHandles[2] =
+	{
+		process->stdErrPipeHandle, //read stderr first.
+		process->stdOutPipeHandle
+	};
+
+	const uint4 HANDLE_COUNT = sizeof(stdHandles) / sizeof(HANDLE);
 
 	if (!process->running)
 		return 0;
 
+
 	while (keepRun)
 	{
 		//Read the process console output buffer.
-		if (ReadFile(process->stdOutPipeHandle,buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
+		if (ReadFile(stdHandles[handleIndex],buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
 		{
 			buffer.SetWrittenSize(readLen);
 			bufLen = buffer.GetLength();
@@ -68,10 +78,21 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 		}
 		else
 		{
+			handleIndex++;
+
 			if (buffer.GetLength() > 0)
 				_PsihDispatchCallback(process,buffer.GetLength());
 
-			keepRun=FALSE;
+			if (handleIndex == HANDLE_COUNT)
+			{
+				keepRun=FALSE;
+			}
+			else
+			{
+				pos = 0;
+				bufLen = 0;
+				buffer.Clear();
+			}
 		}
 
 		ffhelper::Helper::DelayExecution(1);
@@ -117,6 +138,7 @@ PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECE
 	PROCESS_INFORMATION processInfo;
 	PROCESS *process = NULL;
 	HANDLE pipeWrite=NULL,pipeRead=NULL;
+	HANDLE pipeErrWrite=NULL,pipeErrRead=NULL;
 	SECURITY_ATTRIBUTES sa;
 	LPWSTR cmdLine = NULL,argvPref=NULL;
 	
@@ -134,11 +156,15 @@ PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECE
 	if (!CreatePipe(&pipeRead,&pipeWrite,&sa,0))
 		goto cleanUp;
 
+	if (!CreatePipe(&pipeErrRead,&pipeErrWrite,&sa,0))
+		goto cleanUp;
+
 	//fill PSI with STDOUT redirection option
 	RtlZeroMemory(&psi,sizeof(STARTUPINFOW));
 	psi.cb = sizeof(STARTUPINFOW);
 	psi.dwFlags = STARTF_USESTDHANDLES;
 	psi.hStdOutput = pipeWrite;
+	psi.hStdError = pipeErrWrite;
 
 	//Create stdout comsume worker thread
 	if (!PsiCreateStdOutWorker(process))
@@ -172,6 +198,7 @@ PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECE
 	//So we collect some required things
 	process->processHandle = processInfo.hProcess;
 	process->stdOutPipeHandle = pipeRead;
+	process->stdErrPipeHandle = pipeErrRead;
 	process->commandLine = cmdLine;
 
 	//allocate receive buffer
@@ -197,8 +224,15 @@ cleanUp: //Release the resources if it has failed
 
 	if (pipeRead != NULL)
 		CloseHandle(pipeRead);
+
 	if (pipeWrite != NULL)
 		CloseHandle(pipeWrite);
+
+	if (pipeErrRead != NULL)
+		CloseHandle(pipeErrRead);
+
+	if (pipeErrWrite != NULL)
+		CloseHandle(pipeErrWrite);
 
 	return NULL;
 
