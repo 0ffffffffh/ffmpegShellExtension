@@ -68,7 +68,7 @@ public:
 	{
 		WCHAR fileName[MAX_PATH];
 		FILEPATHITEM *item = CASTARG(FILEPATHITEM *);
-		Duration dt;
+		ffmpegTime dt;
 
 		FlGeneratePathString(item,fileName,MAX_PATH,PAS_NONE,NULL);
 

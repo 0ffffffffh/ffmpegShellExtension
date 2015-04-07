@@ -19,7 +19,7 @@ LPCSTR DbPrefErr = "ffShell-Error: ";
 
 void __debugPrint(LPCSTR format, va_list argList)
 {
-	char buffer[512];
+	char buffer[1024];
 	uint4 p;
 	
 	memset(buffer,0,sizeof(buffer));
@@ -62,7 +62,7 @@ PREFIX DbDebugGetFilter()
 void DbDebugPrintEx(LPCSTR format, PREFIX prefix, ...)
 {
 	va_list argList;
-	char buf[512];
+	char buf[1024];
 
 	if (prefix == Unknown)
 	{

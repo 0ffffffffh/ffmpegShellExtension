@@ -24,8 +24,9 @@ typedef struct tagUiResult
 	HANDLE uiEvent;
 	INT_PTR result;
 	UINT dlgResourceId;
+	BOOL seperateThread;
 	HWND parentWnd;
-	VOID *param;
+	PVOID param;
 	BOOL isUiOutside;
 	BOOL isRunning;
 }UIOBJECT;
@@ -39,7 +40,14 @@ BOOL UiIsRunning(UIOBJECT *ui);
 
 VOID UiRegisterDisposer(UIOBJECT *uiObject, UIAFTEREXITDISPOSER disposer);
 
-UIOBJECT *UiCreateDialog(UIDLGPROC dlgProc, HWND parentWnd, UINT dialogResourceId, VOID *param, PRECREATEWINDOWINFO *pci,PRECREATEWINDOWEVENT creationEvent);
+UIOBJECT *UiCreateDialog(
+	UIDLGPROC dlgProc, 
+	HWND parentWnd, 
+	UINT dialogResourceId, 
+	BOOL seperateThread,
+	PVOID param, 
+	PRECREATEWINDOWINFO *pci,
+	PRECREATEWINDOWEVENT creationEvent);
 
 VOID UiDestroyDialog(UIOBJECT *ui);
 

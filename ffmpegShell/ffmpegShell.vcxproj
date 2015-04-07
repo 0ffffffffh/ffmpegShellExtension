@@ -71,7 +71,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(MSBuildProjectDirectory)\src\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(MSBuildProjectDirectory);$(MSBuildProjectDirectory)\src\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IgnoreImportLibrary>true</IgnoreImportLibrary>
@@ -311,7 +311,7 @@
     <ClInclude Include="src\include\PresetFileLexer.h" />
     <ClInclude Include="src\include\PresetParser.h" />
     <ClInclude Include="src\include\ps.h" />
-    <ClInclude Include="src\include\Resource.h" />
+    <ClInclude Include="Resource.h" />
     <ClInclude Include="src\include\stdafx.h" />
     <ClInclude Include="src\include\string\AutoString.h" />
     <ClInclude Include="src\include\targetver.h" />
@@ -338,4 +338,9 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\masm.targets" />
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="ffmpegShell.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

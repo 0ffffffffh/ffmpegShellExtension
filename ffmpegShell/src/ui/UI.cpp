@@ -270,7 +270,15 @@ BOOL IntUiCreateDialog(UIOBJECT *uiObj)
 	uiObj->uiEvent = CreateEventW(NULL,FALSE,FALSE,NULL);
 	
 	
-	uiObj->uiThread = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)IntUiWorker,uiObj,0,&tid);
+	if (uiObj->seperateThread)
+	{
+		uiObj->uiThread = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)IntUiWorker,uiObj,0,&tid);
+	}
+	else
+	{
+		uiObj->uiThread = GetCurrentThread();
+		IntUiWorker(uiObj);
+	}
 
 	if (WaitForSingleObject(uiObj->uiEvent,30 * 1000) == WAIT_TIMEOUT)
 	{
@@ -305,13 +313,21 @@ VOID UiRegisterDisposer(UIOBJECT *uiObject, UIAFTEREXITDISPOSER disposer)
 	uiObject->uiDisposer = disposer;
 }
 
-UIOBJECT *UiCreateDialog(UIDLGPROC dlgProc, HWND parentWnd, UINT dialogResourceId, VOID *param, PRECREATEWINDOWINFO *pci,PRECREATEWINDOWEVENT creationEvent)
+UIOBJECT *UiCreateDialog(
+	UIDLGPROC dlgProc, 
+	HWND parentWnd, 
+	UINT dialogResourceId,
+	BOOL seperateThread,
+	PVOID param, 
+	PRECREATEWINDOWINFO *pci,
+	PRECREATEWINDOWEVENT creationEvent)
 {
 	UIOBJECT *uiObject=NULL;
 	INTPARAM *internParam;
 
 	uiObject = ALLOCOBJECT(UIOBJECT);
 	uiObject->dlgResourceId = dialogResourceId;
+	uiObject->seperateThread = seperateThread;
 	uiObject->parentWnd = parentWnd;
 	
 	internParam = ALLOCOBJECT(INTPARAM);
@@ -330,12 +346,12 @@ UIOBJECT *UiCreateDialog(UIDLGPROC dlgProc, HWND parentWnd, UINT dialogResourceI
 		return NULL;
 	}
 
-
 	//Prevent unload dll
 	DmProtectVirtualSpace();
 
 	return uiObject;
 }
+
 
 void __UiReleaseResources(UIOBJECT *ui)
 {

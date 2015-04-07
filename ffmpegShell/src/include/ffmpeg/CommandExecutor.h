@@ -13,6 +13,9 @@
 
 #define CMVT_INF			0x00000001
 #define CMVT_OUTF			0x00000002
+#define CMVT_OPT_SS			0x00000003
+#define CMVT_OPT_T			0x00000004
+#define CMVT_OPT_TO			0x00000005
 
 typedef struct
 {
@@ -50,6 +53,37 @@ static __forceinline __cmd_var *_alloc_cvar()
 	cvar->varExt->Insert(val); \
  } \
 
+
+static __forceinline byte InfToCmvt(InputVariableField inf)
+{
+	switch (inf)
+	{
+	case IvfStartTime:
+		return CMVT_OPT_SS;
+	case IvfDuration:
+		return CMVT_OPT_T;
+	case IvfPosition:
+		return CMVT_OPT_TO;
+	}
+
+	return 0;
+}
+
+static __forceinline InputVariableField CmvtToInf(byte cmvt)
+{
+	switch (cmvt)
+	{
+	case CMVT_OPT_SS:
+		return IvfStartTime;
+	case CMVT_OPT_T:
+		return IvfDuration;
+	case CMVT_OPT_TO:
+		return IvfPosition;
+	}
+
+	return IvfNone;
+}
+
 static __forceinline bool __try_set_vartype(wchar *buf, __cmd_var *cvar)
 {
 	cvar->type = 0;
@@ -58,6 +92,12 @@ static __forceinline bool __try_set_vartype(wchar *buf, __cmd_var *cvar)
 		cvar->type = CMVT_INF;
 	else if (!wcsnicmp(buf,L"OUTF\0",5))
 		cvar->type = CMVT_OUTF;
+	else if (!wcsnicmp(buf,L"SS\0",3))
+		cvar->type = CMVT_OPT_SS;
+	else if (!wcsnicmp(buf,L"TO\0",3))
+		cvar->type = CMVT_OPT_TO;
+	else if (!wcsnicmp(buf,L"T\0",2))
+		cvar->type = CMVT_OPT_T;
 
 	return cvar->type > 0;
 }
@@ -75,6 +115,35 @@ static int cvarArrayComparer(__cmd_var *v1, __cmd_var *v2)
 class CommandExecutor
 {
 private:
+	ffmpegTime sourceTimeLength;
+
+	static void SetTimePart(const anstring valstr, int4 part, ffmpegTime *time)
+	{
+		uint4 val = (uint4)strtoul((const char *)valstr,NULL,10);
+		
+		*( ((uint4 *)time) + part ) = val;
+	}
+
+	static bool ParseProcessedTime(anstring str, ffmpegTime *time)
+	{
+		char *tok;
+		const char *delim = " =:.";
+		int4 part=-1;
+
+		tok = strtok((char *)str,delim);
+
+		while (tok != NULL)
+		{
+			if (part > -1)
+				SetTimePart(tok,part,time);
+			else if (!strcmp(tok,"time"))
+				part++;
+
+			tok = strtok(NULL,delim);
+		}
+
+	}
+
 	static void OnStdoutLineReceived(vptr arg, LPCSTR line)
 	{
 	}
@@ -243,7 +312,37 @@ private:
 		return NULL;
 	}
 
-	wnstring GenerateActualFFmpegCommand(const wchar *cmd, DynamicArray<__cmd_var *> *varList)
+	void AskUserVariable(
+		DynamicArray<__cmd_var *> *varList, 
+		DynamicArray<__cmd_var *> *userInputVarList,
+		InputVariableField fields)
+	{
+		__cmd_var *cvar;
+		wnstring str;
+
+		ffmpegVariableInputDialog varDlg(fields);
+		varDlg.ShowDialog();
+
+		str = ALLOCSTRINGW(255);
+
+		while (userInputVarList->GetCount() > 0)
+		{
+			cvar = (*userInputVarList)[0];
+			varDlg.GetFieldString(str,255,CmvtToInf(cvar->type));
+			cvar->lfo = str;
+
+			varList->Add(cvar);
+			userInputVarList->Remove(0);
+		}
+
+		FREESTRING(str);
+	}
+
+	wnstring GenerateActualFFmpegCommand(
+		const wchar *cmd, 
+		DynamicArray<__cmd_var *> *varList, 
+		DynamicArray<__cmd_var *> *userInputVarList,
+		InputVariableField fields)
 	{
 		__cmd_var *var;
 		FILEPATHITEM *fileItem,*outFileInfo;
@@ -251,6 +350,9 @@ private:
 		AutoStringW str(cmd);
 		uint4 shiftLen=0, fNameLen=0,copyPos=0,copyLen=0;
 
+		//request input first
+
+		AskUserVariable(varList,userInputVarList,fields);
 		
 		for (uint4 i=0; i<varList->GetCount();i++)
 		{
@@ -269,13 +371,12 @@ private:
 					outFileInfo,
 					fileName,
 					MAX_PATH,
-					FL_FLAG_ZERO_BUFFER | FL_FLAG_SURROUND_QUOTES,
+					FL_FLAG_ZERO_BUFFER | FL_FLAG_QUOTE_SURROUNDED,
 					PAS_OBJECTNAME,
 					L"output");
 			}
-			else
+			else if (var->type == CMVT_INF)
 			{
-
 				if (fileItem == NULL)
 				{
 					//There is no linked fileItem for the current variable
@@ -289,9 +390,14 @@ private:
 					fileItem,
 					fileName,
 					MAX_PATH,
-					FL_FLAG_ZERO_BUFFER | FL_FLAG_SURROUND_QUOTES,
+					FL_FLAG_ZERO_BUFFER | FL_FLAG_QUOTE_SURROUNDED,
 					PAS_NONE,
 					NULL);
+			}
+			else
+			{
+				//request duration input from the users
+
 			}
 
 			var->bpos += shiftLen;
@@ -313,14 +419,20 @@ public:
 	{
 		wnstring ffmpegCmd = NULL;
 		ffmpegProcess *process = NULL;
-		LinkedListNode<__cmd_var *> *cvarNode = NULL;
+		LinkedListNode<__cmd_var *> *cvarNode = NULL,*tmpNode=NULL;
+		__cmd_var *cvar;
 		uint4 outfCount=0;
+		bool linkToVar=false;
+		InputVariableField ivf = IvfNone;
 
 		LinkedList<__cmd_var *> *varList;
 		DynamicArray<__cmd_var *> processedVarList(
 			(DynamicArray<__cmd_var *>::DYNAMIC_ARRAY_SORT_COMPARER)cvarArrayComparer
 			);
 
+		DynamicArray<__cmd_var *> userInputVarList(
+			(DynamicArray<__cmd_var *>::DYNAMIC_ARRAY_SORT_COMPARER)cvarArrayComparer
+			);
 
 
 		varList = new LinkedList<__cmd_var *>();
@@ -347,13 +459,14 @@ public:
 		{
 			cvarNode = GetCmdVarByFileExtension(node->GetValue()->objectExtension,varList);
 
+
 			if (cvarNode == NULL)
 			{
 				goto cleanUp;
 				//Raise error
 			}
-
-			//Ok. i found it. Link the variable to the file object 
+			
+			//Ok. i found it. Link the variable to the file object
 			cvarNode->GetValue()->lfo = node->GetValue();
 
 			//And detach varlist and add to the processed list.
@@ -363,6 +476,39 @@ public:
 			delete cvarNode;
 
 		}
+
+		//Try to get user input variable infos
+		LL_FOREACH(__cmd_var *,cvNode,varList)
+		{
+
+			cvar = cvNode->GetValue();
+			
+			if (cvar->type == CMVT_OPT_SS)
+				ivf |= IvfStartTime;
+			else if (cvar->type == CMVT_OPT_TO)
+				ivf |= IvfPosition;
+			else if (cvar->type == CMVT_OPT_T)
+				ivf |= IvfDuration;
+			else
+				continue;
+
+			//update foreach node for detachment operation
+			tmpNode = cvNode;
+			
+			if (cvNode->HasPrevious())
+				cvNode = cvNode->Previous();
+			else
+				cvNode = varList->Begin();
+
+			//remove list and add cvar value to the user input list
+			varList->DetachNode(cvNode);
+			userInputVarList.Add(cvar);
+
+			delete tmpNode;
+			
+		}
+
+		//still exists a variable except OUTF?
 
 		if (varList->GetCount() > 1 )
 		{
@@ -376,7 +522,11 @@ public:
 		processedVarList.Add(cvarNode->GetValue());
 		delete cvarNode;
 
-		ffmpegCmd = GenerateActualFFmpegCommand(preset->command,&processedVarList);
+		ffmpegCmd = GenerateActualFFmpegCommand(
+			preset->command,
+			&processedVarList,
+			&userInputVarList,
+			ivf);
 
 		fileList->Release();
 
@@ -394,7 +544,5 @@ cleanUp:
 
 		if (ffmpegCmd != NULL)
 			FREESTRING(ffmpegCmd);
-		
-
 	}
 };

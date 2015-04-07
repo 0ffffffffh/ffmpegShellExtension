@@ -455,6 +455,9 @@ public:
 
 	FILEPATHITEM *GetLastObject() const
 	{
+		if (this->objectList->GetCount() == 0)
+			return NULL;
+
 		return this->objectList->End()->GetValue();
 	}
 

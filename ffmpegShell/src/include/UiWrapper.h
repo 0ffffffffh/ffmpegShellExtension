@@ -57,13 +57,63 @@ public:
 
 	virtual bool ShowDialog()
 	{
-		this->uiObject = UiCreateDialog((UIDLGPROC)this->DialogProc,NULL,this->dlgId,this,NULL,NULL);
+		return ShowDialog(true);
+	}
+
+	virtual bool ShowDialog(bool seperateUiThread)
+	{
+		this->uiObject = UiCreateDialog(
+			(UIDLGPROC)this->DialogProc,
+			NULL,
+			this->dlgId,
+			(BOOL)seperateUiThread,
+			this,
+			NULL,
+			NULL);
+
 		return this->uiObject != NULL;
 	}
 
 	void Close()
 	{
 		UiDestroyDialog(this->uiObject);
+	}
+
+	uint4 GetControlTextA(uint4 ctrlId, anstring strBuf, uint4 bufSize)
+	{
+		wnstring wbuf = ALLOCSTRINGW(bufSize);
+		anstring as;
+		uint4 textLen;
+
+		if (!wbuf)
+			return 0;
+
+		textLen = GetControlText(ctrlId,wbuf,bufSize);
+
+		if (textLen > 0)
+		{
+			as = ffhelper::Helper::WideToAnsiString(wbuf);
+
+			if (as != NULL)
+			{
+				strncpy(strBuf,as,textLen);
+				FREESTRING(as);
+			}
+		}
+
+		FREESTRING(wbuf);
+
+		return textLen;
+	}
+
+	uint4 GetControlText(uint4 ctrlId, wnstring strBuf, uint4 bufSize)
+	{
+		HWND ctrlHwnd = GetDlgItem(this->uiObject->hwnd,ctrlId);
+
+		if (!ctrlHwnd)
+			return 0;
+
+		return GetWindowTextW(ctrlHwnd,(LPWSTR)strBuf,bufSize);
 	}
 
 	bool SetControlText(uint4 ctrlId, wnstring str)

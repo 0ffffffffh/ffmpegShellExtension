@@ -10,7 +10,7 @@ typedef struct
 	uint4 minutes;
 	uint4 seconds;
 	uint4 milliseconds;
-}Duration;
+}ffmpegTime;
 
 typedef enum
 {
@@ -24,7 +24,7 @@ typedef struct
 	char codecType[16];
 	char codecTag[8];
 	char aspectRatio[6];
-	Duration duration;
+	ffmpegTime duration;
 	uint4 width;
 	uint4 height;
 	uint4 bitRate;
@@ -89,7 +89,7 @@ LinkedList<AutoStringA*> *FpParseInfo(LPCSTR line)
 class MediaInfo
 {
 private:
-	Duration time;
+	ffmpegTime time;
 	uint8 size;
 	MediaSourceType type;
 	StreamInfo streams[2];
@@ -98,7 +98,7 @@ private:
 	wchar mediaFileName[MAX_PATH];
 	DynamicArray<LinkedList<AutoStringA *> *> ffprobeInfoList;
 
-	void DoubleToDuration(double d, Duration *dt)
+	void DoubleToDuration(double d, ffmpegTime *dt)
 	{
 		const int SECONDS_IN_MINUTE = 1 * 60;
 		const int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
@@ -126,7 +126,14 @@ private:
 		if (*key == "codec_name")
 			strcpy(streamInfo->codecName,val->c_str());
 		else if (*key == "codec_type")
+		{
 			strcpy(streamInfo->codecType,val->c_str());
+
+			if (!strcmp(streamInfo->codecType,"video"))
+				this->type == SrcVideo;
+			else if (!strcmp(streamInfo->codecType,"audio"))
+				this->type == SrcAudio;
+		}
 		else if (*key == "codec_tag_string")
 			strcpy(streamInfo->codecTag,val->c_str());
 		else if (*key == "display_aspect_ratio")
@@ -235,10 +242,10 @@ public:
 		Initialize();
 	}
 
-	bool GetMediaDuration(Duration *mt)
+	bool GetMediaDuration(ffmpegTime *mt)
 	{
 		//TODO: Valitate
-		memcpy(mt,&this->streams[0].duration,sizeof(Duration));
+		memcpy(mt,&this->streams[0].duration,sizeof(ffmpegTime));
 		return true;
 	}
 

@@ -4,6 +4,145 @@
 #include "UiWrapper.h"
 #include "FileFolderDialog.h"
 #include "Settings.h"
+#include <map>
+
+typedef enum 
+{
+	IvfNone				= 0,
+	IvfVideoBitrate		= 1,
+	IvfAudioBitrate		= 2,
+	IvfStartTime		= 4,
+	IvfPosition			= 8,
+	IvfDuration			= 16
+}InputVariableField;
+
+inline InputVariableField operator |(InputVariableField a, InputVariableField b)
+{
+	return static_cast<InputVariableField>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+inline InputVariableField operator |=(InputVariableField a, InputVariableField b)
+{
+	return static_cast<InputVariableField>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+class ffmpegVariableInputDialog : public UiWrapper
+{
+private:
+	typedef std::map<InputVariableField,wnstring> __FieldMap;
+
+
+	InputVariableField fields;
+	__FieldMap fMap;
+
+	void StoreToMap(InputVariableField ivf, int4 cid)
+	{
+		wnstring value;
+
+		if (fMap.find(ivf) == fMap.end())
+			return;
+
+		value = ALLOCSTRINGW(255);
+
+		if (GetControlText(cid,value,255)>0)
+			fMap.insert(std::make_pair(ivf,value));
+		else
+			FREESTRING(value);
+	}
+
+	void StoreStringsForAvailableFields()
+	{
+		if (this->fields & IvfAudioBitrate)
+			StoreToMap(IvfAudioBitrate,IDC_TXTABIT);
+		
+		if (this->fields & IvfVideoBitrate)
+			StoreToMap(IvfVideoBitrate,IDC_TXTVBIT);
+		
+		if (this->fields & IvfStartTime)
+			StoreToMap(IvfStartTime,IDC_TXTSTARTTIME);
+		
+		if (this->fields & IvfDuration)
+			StoreToMap(IvfDuration,IDC_TXTDURATION);
+		
+		if (this->fields & IvfPosition)
+			StoreToMap(IvfPosition,IDC_TXTDURATION);
+	}
+	
+public:
+	ffmpegVariableInputDialog(InputVariableField fields) : UiWrapper(IDD_DLGPRESETVALUE)
+	{
+		this->fields = fields;
+	}
+
+	~ffmpegVariableInputDialog()
+	{
+		for (__FieldMap::iterator it = this->fMap.begin();
+			it != this->fMap.end();
+			it++)
+		{
+			FREESTRING(it->second);
+		}
+
+		this->fMap.clear();
+	}
+
+	void OnCommand(WPARAM wp, LPARAM lp)
+	{
+		switch (LOWORD(wp))
+		{
+		case IDC_BTNOK:
+			{
+				StoreStringsForAvailableFields();
+				Close();
+				break;
+			}
+		}
+	}
+
+	bool ShowDialog()
+	{
+		bool ret = UiWrapper::ShowDialog(false);
+
+		if (ret)
+		{
+			if (this->fields & IvfAudioBitrate)
+				EnableControl(IDC_TXTABIT);
+
+			if (this->fields & IvfVideoBitrate)
+				EnableControl(IDC_TXTVBIT);
+			
+			if (this->fields & IvfStartTime)
+				EnableControl(IDC_TXTSTARTTIME);
+			
+			if (this->fields & IvfDuration)
+				EnableControl(IDC_TXTDURATION);
+
+			if (this->fields & IvfPosition)
+				EnableControl(IDC_TXTDURATION);
+		}
+
+		return ret;
+	}
+
+	uint4 GetFieldString(wnstring strBuf, uint4 bufSize,InputVariableField field)
+	{
+		__FieldMap::iterator it = this->fMap.find(field);
+		uint4 len;
+
+		if (it == this->fMap.end())
+			return 0;
+
+		len = wcslen(it->second);
+
+		if (len+1 > bufSize)
+			return 0;
+
+		memset(strBuf,0,bufSize);
+		wcscpy(strBuf,it->second);
+
+		return len;
+	}
+};
 
 class CompileDialog : public UiWrapper
 {

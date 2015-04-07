@@ -165,6 +165,8 @@ namespace ffhelper
 			return ws+1;
 		}
 
+
+
 		static wnstring AnsiToWideString(anstring str)
 		{
 			uint4 slen;

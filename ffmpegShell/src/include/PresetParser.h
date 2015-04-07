@@ -58,6 +58,13 @@ typedef struct
 
 typedef void (*COMPILATION_EVENT_HANDLER)(void *, LPCSTR);
 
+static __forceinline void LazyWcsToMb(wnstring wstr, anstring abuf)
+{
+	while (*wstr != L'\0')
+	{
+		*abuf++ = (achar)*wstr++;
+	}
+}
 
 #define NodePtr(node) node->GetValue()
 
@@ -350,6 +357,7 @@ private:
 		PRESETOBJECT *presetInstance;
 
 		char buf[512]={0};
+		int4 slen;
 
 		LinkedListNode<TOKENINFO *> *tokNode = *token;
 
@@ -368,7 +376,9 @@ private:
 				}
 			}
 
-			sprintf(buf,"unknown identifier : %s",tokNode->GetValue()->data);
+			slen = sprintf(buf,"unknown identifier : ");
+			LazyWcsToMb(tokNode->GetValue()->data,buf+slen);
+			
 			RaiseError(tokNode,buf);
 			return false;
 		}
