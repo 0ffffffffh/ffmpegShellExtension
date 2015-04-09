@@ -9,12 +9,12 @@
 #include "helper\ArgPack.h"
 
 //File system object list.
-FileList					*g_fileObjectList=NULL;
+FileList*					g_fileObjectList=NULL;
 HMENU						g_contextShellMenu=NULL;
-MENUCONTAINER				*g_menu;
-UIOBJECT					*g_uiObj;
+MENUCONTAINER*				g_menu;
+UIOBJECT*					g_uiObj;
 HWND						g_activeHwnd=NULL;
-FILEPATHITEM				*g_selectedFile;
+FILEPATHITEM*				g_selectedFile;
 bool						g_presetsLoaded=FALSE;
 FORWARDED SETTINGS			g_settings;
 
