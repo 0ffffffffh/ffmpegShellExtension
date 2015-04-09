@@ -136,6 +136,8 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 
 			matchedPresets = PtGetPresetsByExtension((wchar *)filePath->objectExtension);
 			
+			MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
+
 			if (matchedPresets != NULL)
 			{
 				g_fileObjectList->AddRef();
@@ -155,7 +157,6 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 
 
 					MeAddItem2(g_menu,LongTimeHandler,MenuHandlers::StartConvertingOperation,argPack,(wnstring)node->GetValue()->name);
-					MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
 				}
 			}
 		}

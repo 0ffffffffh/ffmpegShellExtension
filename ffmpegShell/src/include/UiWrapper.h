@@ -14,7 +14,10 @@ private:
 		switch (msg)
 		{
 		case WM_INITDIALOG:
-			_this->OnInit();
+			{
+				_this->uiObject = (UIOBJECT *)lp;
+				_this->OnInit();
+			}
 			break;
 		case WM_COMMAND:
 			_this->OnCommand(wp,lp);
@@ -29,6 +32,7 @@ private:
 	}
 
 	UIOBJECT *uiObject;
+	WINDOWCREATIONINFO wci;
 	int4 dlgId;
 
 private:
@@ -43,11 +47,27 @@ private:
 		return (bool)EnableWindow(ctrlHwnd,(BOOL)state);
 	}
 
+	void InitCommon(int4 dlgId, bool center)
+	{
+		this->dlgId = dlgId;
+
+		if (center)
+		{
+			this->wci.pci = ALLOCOBJECT(PRECREATEWINDOWINFO);
+			this->wci.pci->wri.flag = WRIF_CENTER;
+		}
+
+	}
 public:
+
+	UiWrapper(int4 dlgId, bool center)
+	{
+		InitCommon(dlgId,center);
+	}
 
 	UiWrapper(int4 dlgId)
 	{
-		this->dlgId = dlgId;
+		InitCommon(dlgId,false);
 	}
 
 	~UiWrapper(void)
@@ -68,8 +88,7 @@ public:
 			this->dlgId,
 			(BOOL)seperateUiThread,
 			this,
-			NULL,
-			NULL);
+			&this->wci);
 
 		return this->uiObject != NULL;
 	}

@@ -24,14 +24,11 @@ typedef struct tagIntParam
 {
 	WORD intParamMagic;
 	void *userParam;
-	PRECREATEWINDOWINFO *pci;
-	PRECREATEWINDOWEVENT pcwe;
+	WINDOWCREATIONINFO *wci;
 }INTPARAM;
 
 
 map<HWND,UIOBJECT *> *gp_windowMap;
-
-static const PRECREATEWINDOWINFO UiEmptyPci={0};
 
 extern void DmProtectVirtualSpace();
 extern void DmUnprotectVirtualSpace();
@@ -184,7 +181,50 @@ LPCDLGTEMPLATEW IntUiGetDialogTemplate(UINT dlgResourceId)
 
 VOID IntUiResizeAndLocateWindow(HWND hwnd, PRECREATEWINDOWINFO *pci)
 {
-	NOTIMPLEMENTED();
+	SIZE referenceSize;
+	RECT wndRc;
+	UINT swpFlag = SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOMOVE | SWP_NOSIZE;
+
+	int sysScrWidth,sysScrHeight;
+
+	sysScrWidth = GetSystemMetrics(SM_CXSCREEN);
+	sysScrHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	if (pci->wri.flag & WRIF_SIZE)
+	{
+		swpFlag &= ~SWP_NOSIZE;
+		referenceSize = pci->wri.size;
+	}
+	else
+	{
+		GetWindowRect(hwnd,&wndRc);
+
+		referenceSize.cx = wndRc.right - wndRc.left;
+		referenceSize.cy = wndRc.bottom - wndRc.top;
+	}
+
+	if (pci->wri.flag & WRIF_LOCATION)
+	{
+		swpFlag &= ~SWP_NOMOVE;
+	}
+
+	if (pci->wri.flag & WRIF_CENTER)
+	{
+		if (swpFlag & SWP_NOMOVE)
+			swpFlag &= ~SWP_NOMOVE;
+
+		pci->wri.point.x = (sysScrWidth / 2) - (referenceSize.cx / 2);
+		pci->wri.point.y = (sysScrHeight / 2) - (referenceSize.cy / 2);
+	}
+
+	SetWindowPos(
+		hwnd,NULL,
+		pci->wri.point.x,
+		pci->wri.point.y,
+		referenceSize.cx,
+		referenceSize.cy,
+		swpFlag);
+
 }
 
 DWORD WINAPI IntUiWorker(VOID *Arg)
@@ -192,8 +232,8 @@ DWORD WINAPI IntUiWorker(VOID *Arg)
 	MSG msg;
 	INTPARAM *internParam;
 	UIOBJECT *uiObj = (UIOBJECT *)Arg;
-	PRECREATEWINDOWINFO pci,*PciPtr=NULL;
-
+	WINDOWCREATIONINFO *wciPtr = NULL;
+	
 	uiObj->isUiOutside = TRUE;
 
 
@@ -205,23 +245,17 @@ DWORD WINAPI IntUiWorker(VOID *Arg)
 												(DLGPROC)_UiMainWndProc,
  												(LPARAM)uiObj);
 
-	if (internParam->pcwe != NULL)
+	if (internParam->wci != NULL)
 	{
-		internParam->pcwe(uiObj->hwnd,&pci);
-
-		if (memcmp(&pci,&UiEmptyPci,sizeof(PRECREATEWINDOWINFO)))
-			PciPtr = &pci;
-		
-	}
-	else
-	{
-		if (internParam->pci != NULL)
-			PciPtr = internParam->pci;
+		wciPtr = internParam->wci;
 	}
 
 
-	if (PciPtr)
-		IntUiResizeAndLocateWindow(uiObj->hwnd,PciPtr);
+	if (wciPtr)
+	{
+		if (wciPtr->pci != NULL)
+			IntUiResizeAndLocateWindow(uiObj->hwnd,wciPtr->pci);
+	}
 
 	InterlockedExchangePointer((volatile PVOID *)&uiObj->param,internParam->userParam);
 
@@ -319,8 +353,7 @@ UIOBJECT *UiCreateDialog(
 	UINT dialogResourceId,
 	BOOL seperateThread,
 	PVOID param, 
-	PRECREATEWINDOWINFO *pci,
-	PRECREATEWINDOWEVENT creationEvent)
+	WINDOWCREATIONINFO *wci)
 {
 	UIOBJECT *uiObject=NULL;
 	INTPARAM *internParam;
@@ -333,21 +366,21 @@ UIOBJECT *UiCreateDialog(
 	internParam = ALLOCOBJECT(INTPARAM);
 
 	internParam->intParamMagic = 0x4950;
-	internParam->pci = pci;
-	internParam->pcwe = creationEvent;
+	internParam->wci = wci;
 	internParam->userParam = param;
 
 	uiObject->param = internParam;
 	uiObject->dlgProc = dlgProc;
-	
+
+	DmProtectVirtualSpace();
+
 	if (IntUiCreateDialog(uiObject) == FALSE)
 	{
 		FREEOBJECT(uiObject);
 		return NULL;
 	}
-
-	//Prevent unload dll
-	DmProtectVirtualSpace();
+	else
+		DmUnprotectVirtualSpace();
 
 	return uiObject;
 }

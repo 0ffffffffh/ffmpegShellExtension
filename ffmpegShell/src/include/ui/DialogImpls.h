@@ -16,14 +16,9 @@ typedef enum
 	IvfDuration			= 16
 }InputVariableField;
 
-inline InputVariableField operator |(InputVariableField a, InputVariableField b)
+inline InputVariableField& operator |=(InputVariableField &a, InputVariableField b)
 {
-	return static_cast<InputVariableField>(static_cast<int>(a) | static_cast<int>(b));
-}
-
-inline InputVariableField operator |=(InputVariableField a, InputVariableField b)
-{
-	return static_cast<InputVariableField>(static_cast<int>(a) | static_cast<int>(b));
+	return a = ( (InputVariableField) ( ((int)a) | ((int)b) ) );
 }
 
 class ffmpegVariableInputDialog : public UiWrapper
@@ -39,7 +34,7 @@ private:
 	{
 		wnstring value;
 
-		if (fMap.find(ivf) == fMap.end())
+		if (fMap.find(ivf) != fMap.end())
 			return;
 
 		value = ALLOCSTRINGW(255);
@@ -69,7 +64,7 @@ private:
 	}
 	
 public:
-	ffmpegVariableInputDialog(InputVariableField fields) : UiWrapper(IDD_DLGPRESETVALUE)
+	ffmpegVariableInputDialog(InputVariableField fields) : UiWrapper(IDD_DLGPRESETVALUE,true)
 	{
 		this->fields = fields;
 	}
@@ -99,29 +94,27 @@ public:
 		}
 	}
 
+	void OnInit()
+	{
+		if (this->fields & IvfAudioBitrate)
+			EnableControl(IDC_TXTABIT);
+		
+		if (this->fields & IvfVideoBitrate)
+			EnableControl(IDC_TXTVBIT);
+		
+		if (this->fields & IvfStartTime)
+			EnableControl(IDC_TXTSTARTTIME);
+		
+		if (this->fields & IvfDuration)
+			EnableControl(IDC_TXTDURATION);
+		
+		if (this->fields & IvfPosition)
+			EnableControl(IDC_TXTDURATION);
+	}
+
 	bool ShowDialog()
 	{
-		bool ret = UiWrapper::ShowDialog(false);
-
-		if (ret)
-		{
-			if (this->fields & IvfAudioBitrate)
-				EnableControl(IDC_TXTABIT);
-
-			if (this->fields & IvfVideoBitrate)
-				EnableControl(IDC_TXTVBIT);
-			
-			if (this->fields & IvfStartTime)
-				EnableControl(IDC_TXTSTARTTIME);
-			
-			if (this->fields & IvfDuration)
-				EnableControl(IDC_TXTDURATION);
-
-			if (this->fields & IvfPosition)
-				EnableControl(IDC_TXTDURATION);
-		}
-
-		return ret;
+		return UiWrapper::ShowDialog(false);
 	}
 
 	uint4 GetFieldString(wnstring strBuf, uint4 bufSize,InputVariableField field)

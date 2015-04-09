@@ -282,12 +282,12 @@ namespace ffhelper
 			CONVERT_TO_SIZE(location);
 			CONVERT_TO_SIZE(count);
 
-			memset(data+location,0,count);
+			memset(byteData+location,0,count);
 		
 			if (location+count < filledLen) 
 			{
-				memmove(data+location,data+location+count,filledLen-(location+count));
-				memset(data+(filledLen-count),0,count);
+				memmove(byteData+location,byteData+location+count,filledLen-(location+count));
+				memset(byteData+(filledLen-count),0,count);
 			}
 
 			

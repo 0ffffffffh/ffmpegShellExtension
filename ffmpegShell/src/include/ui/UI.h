@@ -5,14 +5,31 @@
 
 #include "Synch.h"
 
+typedef struct
+{
+	DWORD	flag;
+	POINT	point;
+	SIZE	size;
+}WINDOWREGIONINFO;
+
+#define WRIF_CENTER		0x00000001
+#define WRIF_LOCATION	0x00000002
+#define WRIF_SIZE		0x00000004
+
+
 typedef struct tagPreCreateWindowInfo
 {
-	BOOL centered;
-	SIZE size;
+	WINDOWREGIONINFO	wri;
 }PRECREATEWINDOWINFO;
 
+
+typedef struct tagWindowCreationInfo
+{
+	PRECREATEWINDOWINFO *pci;
+}WINDOWCREATIONINFO;
+
 typedef INT_PTR (CALLBACK* UIDLGPROC)(HWND, UINT, WPARAM, LPARAM,PVOID);
-typedef VOID (*PRECREATEWINDOWEVENT)(HWND hwnd, PRECREATEWINDOWINFO *pci);
+
 typedef VOID (*UIAFTEREXITDISPOSER)();
 
 typedef struct tagUiResult
@@ -46,8 +63,7 @@ UIOBJECT *UiCreateDialog(
 	UINT dialogResourceId, 
 	BOOL seperateThread,
 	PVOID param, 
-	PRECREATEWINDOWINFO *pci,
-	PRECREATEWINDOWEVENT creationEvent);
+	WINDOWCREATIONINFO *wci);
 
 VOID UiDestroyDialog(UIOBJECT *ui);
 

@@ -181,6 +181,12 @@ private:
 						}
 
 						reset_buf();
+
+						//If variable token value is not $INF we can finalize 
+						//now for this variable token
+						//TODO: Make a decision for OUTF situation. Hmm
+						if (cvar->type != CMVT_INF)
+							reset_state();
 					}
 
 					continue;
@@ -323,10 +329,10 @@ private:
 		ffmpegVariableInputDialog varDlg(fields);
 		varDlg.ShowDialog();
 
-		str = ALLOCSTRINGW(255);
-
+		
 		while (userInputVarList->GetCount() > 0)
 		{
+			str = ALLOCSTRINGW(255);
 			cvar = (*userInputVarList)[0];
 			varDlg.GetFieldString(str,255,CmvtToInf(cvar->type));
 			cvar->lfo = str;
@@ -334,8 +340,6 @@ private:
 			varList->Add(cvar);
 			userInputVarList->Remove(0);
 		}
-
-		FREESTRING(str);
 	}
 
 	wnstring GenerateActualFFmpegCommand(
@@ -346,9 +350,9 @@ private:
 	{
 		__cmd_var *var;
 		FILEPATHITEM *fileItem,*outFileInfo;
-		wchar *fileName = ALLOCSTRINGW(MAX_PATH);
+		wchar *replStr = ALLOCSTRINGW(MAX_PATH);
 		AutoStringW str(cmd);
-		uint4 shiftLen=0, fNameLen=0,copyPos=0,copyLen=0;
+		uint4 shiftLen=0, replStrLen=0,copyPos=0,copyLen=0;
 
 		//request input first
 
@@ -367,9 +371,9 @@ private:
 				if (outFileInfo == NULL)
 					return NULL;
 
-				fNameLen = FlGeneratePathString2(
+				replStrLen = FlGeneratePathString2(
 					outFileInfo,
-					fileName,
+					replStr,
 					MAX_PATH,
 					FL_FLAG_ZERO_BUFFER | FL_FLAG_QUOTE_SURROUNDED,
 					PAS_OBJECTNAME,
@@ -386,9 +390,9 @@ private:
 				//we'll using the first input filename to generating output fname.
 				outFileInfo = fileItem;
 
-				fNameLen = FlGeneratePathString2(
+				replStrLen = FlGeneratePathString2(
 					fileItem,
-					fileName,
+					replStr,
 					MAX_PATH,
 					FL_FLAG_ZERO_BUFFER | FL_FLAG_QUOTE_SURROUNDED,
 					PAS_NONE,
@@ -398,16 +402,18 @@ private:
 			{
 				//request duration input from the users
 
+				replStr = (wchar *)var->lfo;
+				replStrLen = wcslen(replStr);
 			}
 
 			var->bpos += shiftLen;
 			var->epos += shiftLen;
 
-			str = str.Replace(var->bpos,var->epos,fileName);
+			str = str.Replace(var->bpos,var->epos,replStr);
 
-			shiftLen = fNameLen - (var->epos-var->bpos);
+			shiftLen = replStrLen - (var->epos-var->bpos);
 
-			ZEROSTRINGW(fileName,MAX_PATH);
+			ZEROSTRINGW(replStr,MAX_PATH);
 		}
 
 		return str.GetNativeStringWithNoDestroy();
@@ -480,7 +486,7 @@ public:
 		//Try to get user input variable infos
 		LL_FOREACH(__cmd_var *,cvNode,varList)
 		{
-
+beginAgain:
 			cvar = cvNode->GetValue();
 			
 			if (cvar->type == CMVT_OPT_SS)
@@ -495,16 +501,23 @@ public:
 			//update foreach node for detachment operation
 			tmpNode = cvNode;
 			
-			if (cvNode->HasPrevious())
-				cvNode = cvNode->Previous();
-			else
-				cvNode = varList->Begin();
-
 			//remove list and add cvar value to the user input list
+			tmpNode = cvNode->Previous();
+
 			varList->DetachNode(cvNode);
 			userInputVarList.Add(cvar);
 
-			delete tmpNode;
+			delete cvNode;
+
+			if (tmpNode != NULL)
+				cvNode = tmpNode;
+			else
+			{
+				//if detached node is head we dont 
+				//want iterate to next. 
+				cvNode = varList->Begin();
+				goto beginAgain;
+			}
 			
 		}
 
