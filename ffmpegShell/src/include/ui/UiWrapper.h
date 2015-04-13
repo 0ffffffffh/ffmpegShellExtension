@@ -1,6 +1,9 @@
 #pragma once
+
 #include "stdafx.h"
-#include "ui\UI.h"
+#include "..\ui\UI.h"
+#include "..\ui\ctrl\UiControlBase.h"
+
 
 
 class UiWrapper
@@ -16,7 +19,7 @@ private:
 		case WM_INITDIALOG:
 			{
 				_this->uiObject = (UIOBJECT *)lp;
-				_this->OnInit();
+				_this->OnInitInternal();
 			}
 			break;
 		case WM_COMMAND:
@@ -31,6 +34,8 @@ private:
 		return 0;
 	}
 
+private:
+	HANDLE initCompletedEvent;
 	UIOBJECT *uiObject;
 	WINDOWCREATIONINFO wci;
 	int4 dlgId;
@@ -49,7 +54,11 @@ private:
 
 	void InitCommon(int4 dlgId, bool center)
 	{
+		this->initCompletedEvent = CreateEvent(NULL,FALSE,FALSE,NULL);
+
 		this->dlgId = dlgId;
+
+		this->wci.pci = NULL;
 
 		if (center)
 		{
@@ -58,6 +67,14 @@ private:
 		}
 
 	}
+
+	void OnInitInternal()
+	{
+		this->OnInit();
+
+		SetEvent(this->initCompletedEvent);
+	}
+
 public:
 
 	UiWrapper(int4 dlgId, bool center)
@@ -72,7 +89,7 @@ public:
 
 	~UiWrapper(void)
 	{
-		UiDestroyDialog(this->uiObject);
+		CloseHandle(this->initCompletedEvent);
 	}
 
 	virtual bool ShowDialog()
@@ -91,6 +108,11 @@ public:
 			&this->wci);
 
 		return this->uiObject != NULL;
+	}
+
+	void WaitForInitCompletion()
+	{
+		WaitForSingleObject(this->initCompletedEvent,INFINITE);
 	}
 
 	void Close()
@@ -135,6 +157,20 @@ public:
 		return GetWindowTextW(ctrlHwnd,(LPWSTR)strBuf,bufSize);
 	}
 
+	bool SetControlTextA(uint4 ctrlId, anstring str)
+	{
+		bool ret;
+		wnstring wstr;
+
+		wstr = ffhelper::Helper::AnsiToWideString(str);
+
+		ret = SetControlText(ctrlId,wstr);
+
+		FREESTRING(wstr);
+
+		return ret;
+	}
+
 	bool SetControlText(uint4 ctrlId, wnstring str)
 	{
 		HWND ctrlHwnd = GetDlgItem(this->uiObject->hwnd,ctrlId);
@@ -153,6 +189,15 @@ public:
 	bool DisableControl(uint4 ctrlId)
 	{
 		return SetControlEnableState(ctrlId,false);
+	}
+
+	template <class T> T *GetControlById(uint4 ctrlId)
+	{
+		T *ctrl = new T(this->uiObject, ctrlId);
+		
+		ctrl->OnInitControl();
+
+		return ctrl;
 	}
 
 	virtual void OnClose()

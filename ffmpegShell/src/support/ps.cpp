@@ -16,15 +16,50 @@ void _PsihDispatchCallback(PROCESS *process, int length)
 		process->stdOutReceiveCallback.size);
 }
 
+INT _PsihPeekAvailableBytesOnPipe(
+	HANDLE *pipeHandles,
+	INT handleCount, 
+	INT peekTry, 
+	DWORD peekDelay,
+	PDWORD totalAvailableBytes)
+{
+
+	DWORD totalAvail=0;
+
+	for (INT i=0;i<handleCount;i++)
+	{
+		while (peekTry >= 0)
+		{
+			PeekNamedPipe(pipeHandles[i],NULL,0,NULL,&totalAvail,NULL);
+
+			if (totalAvail > 0)
+			{
+				if (totalAvailableBytes != NULL)
+					*totalAvailableBytes = totalAvail;
+
+				return i;
+			}
+
+			peekTry--;
+			SleepEx(peekDelay,FALSE);
+		}
+	}
+
+	if (totalAvailableBytes != NULL)
+		*totalAvailableBytes = 0;
+
+	return -1;
+}
+
 UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 {
 	PROCESS *process = (PROCESS *)p;
-	DWORD readLen=0;
+	DWORD readLen=0,totalAvail;
 	int4 pos=0,bufLen=0;
-	uint4 handleIndex=0;
+	int4 handleIndex=0;
 	ByteBuffer buffer(0x1000);
 	BOOL keepRun=TRUE,crLf=FALSE;
-
+	
 	HANDLE stdHandles[2] =
 	{
 		process->stdErrPipeHandle, //read stderr first.
@@ -37,11 +72,20 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 		return 0;
 
 
+	//Do the initial peek for a bit long
+	handleIndex = _PsihPeekAvailableBytesOnPipe(stdHandles,HANDLE_COUNT,20,100,NULL);
+
+	if (handleIndex < 0)
+		handleIndex = 0;
+
 	while (keepRun)
 	{
-		//Read the process console output buffer.
-		if (ReadFile(stdHandles[handleIndex],buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
+		_PsihPeekAvailableBytesOnPipe(&stdHandles[handleIndex],1,5,50,&totalAvail);
+
+		
+		if (totalAvail > 0 && ReadFile(stdHandles[handleIndex],buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
 		{
+			
 			buffer.SetWrittenSize(readLen);
 			bufLen = buffer.GetLength();
 			
@@ -110,6 +154,7 @@ BOOL PsiCreateStdOutWorker(PROCESS *process)
 
 	//Create suspended worker thread.
 	process->stdOutWorkerHandle = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)_PsiStandartOutputReceiveWorker,process,CREATE_SUSPENDED,&tid);
+
 	return process->stdOutWorkerHandle != INVALID_HANDLE_VALUE;
 }
 
@@ -130,7 +175,6 @@ PROCESS *PsExecuteProcess(wnstring processImageName, wnstring arg, STDOUT_RECEIV
 {
 	return PsExecuteProcessEx(processImageName,arg,callback,cbArg,false,0x4000);
 }
-
 
 PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECEIVE_ROUTINE callback, LPVOID cbArg, bool passAsArgv, uint4 bufferStringSize)
 {
@@ -193,7 +237,7 @@ PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECE
 
 	//We dont need write pipe anymore. Because its duplicated by fired up process
 	CloseHandle(pipeWrite);
-
+	CloseHandle(pipeErrWrite);
 	
 	//So we collect some required things
 	process->processHandle = processInfo.hProcess;
@@ -265,7 +309,12 @@ BOOL PsReleaseProcessResources(PROCESS *process)
 
 	CloseHandle(process->processHandle);
 	CloseHandle(process->stdOutWorkerHandle);
-	CloseHandle(process->stdOutWorkerHandle);
+	
+	if (process->stdOutPipeHandle != NULL)
+		CloseHandle(process->stdOutPipeHandle);
+
+	if (process->stdErrPipeHandle != NULL)
+		CloseHandle(process->stdErrPipeHandle);
 
 	FREEOBJECT(process->commandLine);
 	FREEOBJECT(process->stdOutReceiveCallback.buffer);

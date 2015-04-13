@@ -46,6 +46,7 @@ public:
 
 	~ffmpegProcess()
 	{
+		PsReleaseProcessResources(this->process);
 	}
 
 	void SetArg(wnstring argLine)

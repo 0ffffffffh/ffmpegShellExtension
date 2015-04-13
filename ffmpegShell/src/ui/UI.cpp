@@ -164,7 +164,6 @@ LPCDLGTEMPLATEW IntUiGetDialogTemplate(UINT dlgResourceId)
 	HMODULE module = (HMODULE)ge_ModuleInstance;
 	HRSRC res;
 	HGLOBAL templ;
-	DWORD err;
 
 	res = FindResourceW(module,MAKEINTRESOURCEW(dlgResourceId),RT_DIALOG);
 
@@ -396,12 +395,25 @@ void __UiReleaseResources(UIOBJECT *ui)
 
 void UiDestroyDialog(UIOBJECT *ui)
 {
+	HANDLE uiThread = NULL;
+
 	//Who called?
 	if (ui->isUiOutside) 
 	{
+		ui->isUiOutside = FALSE;
+
+		//we must wait only async destroy request to avoid a deadlock 
+		if (ui->uiThread != GetCurrentThread())
+			uiThread = ui->uiThread;
+
 		//Hmm. This function called from outside of UIMgr
 		//Post close message and wait WM_DESTROY
 		PostMessage(ui->hwnd,WM_CLOSE,0,0); 
 	}
+	//else, the destroy message already initiated.
+
+	//block until ui thread exited
+	if (uiThread != NULL)
+		WaitForSingleObject(uiThread,INFINITE);
 }
 

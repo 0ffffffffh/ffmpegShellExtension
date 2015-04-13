@@ -136,10 +136,14 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 
 			matchedPresets = PtGetPresetsByExtension((wchar *)filePath->objectExtension);
 			
-			MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
-
+			
 			if (matchedPresets != NULL)
 			{
+				MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
+
+				if (matchedPresets->GetCount()>0)
+					MeAddSeperator(g_menu);
+
 				g_fileObjectList->AddRef();
 				
 				for (LinkedListNode<PRESET *> *node = matchedPresets->Begin();

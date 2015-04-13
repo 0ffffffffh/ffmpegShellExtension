@@ -17,6 +17,14 @@
 #define CMVT_OPT_T			0x00000004
 #define CMVT_OPT_TO			0x00000005
 
+#define TPP_INVALID			-1
+#define TPP_HOUR			0
+#define TPP_MINUTE			1
+#define TPP_SECOND			2
+#define TPP_MILLISECOND		3
+
+#define TPP_NEXT_PART(x)	((*x)++)
+
 typedef struct
 {
 	LinkedList<wchar *> *varExt;
@@ -112,40 +120,162 @@ static int cvarArrayComparer(__cmd_var *v1, __cmd_var *v2)
 	return v1->bpos - v2->bpos;
 }
 
+wnstring g_wtokDuplPtr=NULL;
+
+inline wnstring wcstok2(wnstring str, const wnstring delim)
+{
+	wnstring s,tok;
+
+	if (str == NULL && delim == NULL)
+	{
+		if (g_wtokDuplPtr != NULL)
+		{
+			FREESTRING(g_wtokDuplPtr);
+			g_wtokDuplPtr=NULL;
+		}
+
+		return NULL;
+	}
+
+	if (str != NULL)
+	{
+		s = ALLOCSTRINGW(wcslen((const wchar_t *)str));
+		g_wtokDuplPtr = s;
+		wcscpy((wchar_t *)s,(const wchar_t *)str);
+
+		tok = wcstok((wchar_t *)s,(const wchar_t *)delim);
+	}
+	else
+		tok = wcstok(NULL,(const wchar_t *)delim);
+
+	return tok;
+}
+
 class CommandExecutor
 {
 private:
-	ffmpegTime sourceTimeLength;
 
-	static void SetTimePart(const anstring valstr, int4 part, ffmpegTime *time)
+	typedef struct
 	{
-		uint4 val = (uint4)strtoul((const char *)valstr,NULL,10);
+		wnstring cmdLine;
+		ffmpegTime ss;
+		ffmpegTime t;
+		ffmpegTime to;
+	}ffmpegCommandInfo;
+
+	ffmpegTime sourceTimeLength;
+	ffmpegCommandInfo cmdInfo;
+	ffmpegProgressWindow *progressWnd;
+
+	static bool SetTimePart(const wnstring valstr, int4 part, ffmpegTime *time)
+	{
+		wchar *lastChrPtr = NULL;
+		uint4 val = (uint4)wcstoul((const wchar_t *)valstr,&lastChrPtr,10);
 		
+		if (val == ULONG_MAX && errno == ERANGE)
+			return false;
+
+		if (!val)
+		{
+			//make sure the conversion really failed.
+			if (lastChrPtr && *lastChrPtr == L'\0')
+				goto setPart;
+
+			return false;
+		}
+
+	setPart:
 		*( ((uint4 *)time) + part ) = val;
+
+		return true;
 	}
 
-	static bool ParseProcessedTime(anstring str, ffmpegTime *time)
+	static bool ParseProcessedTime(wnstring str, const wnstring initiator, ffmpegTime *time)
 	{
-		char *tok;
-		const char *delim = " =:.";
-		int4 part=-1;
+		wnstring tok;
+		const wnstring delim = L" =:.";
+		int4 part=TPP_INVALID;
 
-		tok = strtok((char *)str,delim);
+		tok = wcstok2(str,delim);
+		
+		if (initiator == NULL)
+			part=TPP_HOUR;
 
 		while (tok != NULL)
 		{
-			if (part > -1)
-				SetTimePart(tok,part,time);
-			else if (!strcmp(tok,"time"))
-				part++;
+			if (part > TPP_INVALID)
+			{
+				if (part > TPP_MILLISECOND)
+				{
+					wcstok2(NULL,NULL);
+					return true;
+				}
 
-			tok = strtok(NULL,delim);
+				if (!SetTimePart(tok,part,time))
+				{
+					wcstok2(NULL,NULL);
+
+					//if part number is TPP_MINUTE
+					//it means that the time/duration value just provided in seconds.
+					//we must set seconds field from the hours
+					if (part == TPP_MINUTE)
+					{
+						time->seconds = time->hours;
+						time->hours=0;
+						return true;
+					}
+
+					//when part number is TPP_MILLISECOND,
+					//it means that the millisecond part was not provided. 
+					//so we can return immediately with success
+					return part == TPP_MILLISECOND;
+				}
+
+				TPP_NEXT_PART(&part);
+			}
+			else if (!wcscmp(tok,(const wchar_t *)initiator))
+				TPP_NEXT_PART(&part);
+
+			tok = wcstok2(NULL,delim);
 		}
 
+
+		if (part == TPP_MINUTE)
+		{
+			time->seconds = time->hours;
+			time->hours=0;
+		}
+
+		wcstok2(NULL,NULL);
+		return part != TPP_INVALID;
 	}
 
 	static void OnStdoutLineReceived(vptr arg, LPCSTR line)
 	{
+		uint4 len;
+		ffmpegTime currTime;
+
+		wnstring wline;
+
+		CommandExecutor *_this = (CommandExecutor *)arg;
+		
+
+		//TODO: Dont forget to remove that ugly & quick code
+		len = strlen(line);
+		wline = ffhelper::Helper::AnsiToWideString((anstring)line);
+
+		
+		if (ParseProcessedTime(wline,L"time=",&currTime))
+		{
+			memset(wline,0,sizeof(wchar) * len);
+			
+			wsprintf(wline,L"TIME: %d hr. %d min. %d sec",
+				currTime.hours,currTime.minutes,currTime.seconds);
+
+			_this->progressWnd->SetControlText(IDC_LBLPROGR_STAT,(wnstring)wline);
+		}
+
+		FREESTRING(wline);
 	}
 
 	void ParseCommandVariable(
@@ -166,16 +296,18 @@ private:
 		{
 			if (flag & CMVS_VARSIGN)
 			{
+				//is a standart or a special delim char?
 				if (iswspace(*p) || iscmdspecialchr(*p))
 				{
 					if (buf[0]>0)
 					{
+						//if the buffer charged, try to set as variable
 						if (__try_set_vartype(buf,cvar))
 						{
 							if (cvar->type == CMVT_OUTF)
 								(*outfCount)++;
 
-							cvar->epos = i-1;
+							cvar->epos = i;
 							varList->Insert(cvar);
 							cvar = _alloc_cvar();
 						}
@@ -183,7 +315,8 @@ private:
 						reset_buf();
 
 						//If variable token value is not $INF we can finalize 
-						//now for this variable token
+						//for the current variable token. because $INF can take 
+						//additional extensions
 						//TODO: Make a decision for OUTF situation. Hmm
 						if (cvar->type != CMVT_INF)
 							reset_state();
@@ -326,6 +459,7 @@ private:
 		__cmd_var *cvar;
 		wnstring str;
 
+		ffmpegTime *optTime = NULL;
 		ffmpegVariableInputDialog varDlg(fields);
 		varDlg.ShowDialog();
 
@@ -337,9 +471,63 @@ private:
 			varDlg.GetFieldString(str,255,CmvtToInf(cvar->type));
 			cvar->lfo = str;
 
+			switch (cvar->type)
+			{
+			case CMVT_OPT_SS:
+				optTime = &this->cmdInfo.ss;
+				break;
+			case CMVT_OPT_T:
+				optTime = &this->cmdInfo.t;
+				break;
+			case CMVT_OPT_TO:
+				optTime = &this->cmdInfo.to;
+				break;
+			}
+
+			if (optTime != NULL)
+			{
+				ParseProcessedTime(str,NULL,optTime);
+			}
+
 			varList->Add(cvar);
 			userInputVarList->Remove(0);
 		}
+	}
+
+	void TryDetectStaticTimeDuration(wnstring cmd, ffmpegCommandInfo *cmdInfo)
+	{
+		wnstring pTok;
+		pTok = wcstok2(cmd,L" ");
+
+		ffmpegTime *optTime = NULL;
+
+		while (pTok != NULL)
+		{
+			if (optTime != NULL)
+			{
+				//string to ffmpegTime
+				ParseProcessedTime(pTok,NULL,optTime);
+				goto contiTokeniz;
+			}
+
+			if (!wcsicmp(pTok,L"-ss"))
+			{
+				optTime = &cmdInfo->ss;
+			}
+			else if (!wcsicmp(pTok,L"-to"))
+			{
+				optTime = &cmdInfo->to;
+			}
+			else if (!wcsicmp(pTok,L"-t"))
+			{
+				optTime = &cmdInfo->t;
+			}
+
+	contiTokeniz:
+			pTok = wcstok2(NULL,L" ");
+		}
+
+		wcstok2(NULL,NULL);
 	}
 
 	wnstring GenerateActualFFmpegCommand(
@@ -355,7 +543,6 @@ private:
 		uint4 shiftLen=0, replStrLen=0,copyPos=0,copyLen=0;
 
 		//request input first
-
 		AskUserVariable(varList,userInputVarList,fields);
 		
 		for (uint4 i=0; i<varList->GetCount();i++)
@@ -409,9 +596,9 @@ private:
 			var->bpos += shiftLen;
 			var->epos += shiftLen;
 
-			str = str.Replace(var->bpos,var->epos,replStr);
+ 			str = str.Replace(var->bpos,var->epos,replStr);
 
-			shiftLen = replStrLen - (var->epos-var->bpos);
+			shiftLen += replStrLen - (var->epos-var->bpos);
 
 			ZEROSTRINGW(replStr,MAX_PATH);
 		}
@@ -420,6 +607,12 @@ private:
 	}
 
 public:
+
+	CommandExecutor()
+	{
+		memset(&this->cmdInfo,0,sizeof(ffmpegCommandInfo));
+		memset(&this->sourceTimeLength,0,sizeof(ffmpegTime));
+	}
 
 	void Execute(PRESET *preset, FileList *fileList)
 	{
@@ -443,9 +636,6 @@ public:
 
 		varList = new LinkedList<__cmd_var *>();
 		
-		process = new ffmpegProcess(FFMPEG);
-		process->OnLineReceived = CommandExecutor::OnStdoutLineReceived;
-
 		ParseCommandVariable(preset->command,varList,&outfCount);
 
 		if (!outfCount)
@@ -535,20 +725,38 @@ beginAgain:
 		processedVarList.Add(cvarNode->GetValue());
 		delete cvarNode;
 
+		if (userInputVarList.GetCount() == 0)
+		{
+			//try to grab hardcoded time/duration info for progressbar
+			TryDetectStaticTimeDuration(ffmpegCmd,&this->cmdInfo);
+		}
+
 		ffmpegCmd = GenerateActualFFmpegCommand(
 			preset->command,
 			&processedVarList,
 			&userInputVarList,
 			ivf);
 
+		this->cmdInfo.cmdLine = ffmpegCmd;
+
 		fileList->Release();
 
 		process = new ffmpegProcess(FFMPEG);
+
+		this->progressWnd = new ffmpegProgressWindow();
+		this->progressWnd->ShowDialog();
+
+		this->progressWnd->WaitForInitCompletion();
 
 		process->OnLineReceived = CommandExecutor::OnStdoutLineReceived;
 		process->SetArg(ffmpegCmd);
 		process->Start(this);
 		process->Wait(true);
+		
+		this->progressWnd->Close();
+
+		delete this->progressWnd;
+		this->progressWnd = NULL;
 
 cleanUp:
 		delete varList;

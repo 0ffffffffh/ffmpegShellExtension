@@ -220,3 +220,32 @@ public:
 	}
 
 };
+
+#include "ctrl\UiProgressbar.h"
+
+class ffmpegProgressWindow : public UiWrapper
+{
+private:
+	UiProgressbar *pbar;
+public:
+	ffmpegProgressWindow() : UiWrapper(IDD_DLGPROGRESS,true) 
+	{
+
+	}
+
+	~ffmpegProgressWindow()
+	{
+		delete this->pbar;
+	}
+
+	void OnCommand(WPARAM wp, LPARAM lp)
+	{
+	}
+
+	void OnInit()
+	{
+		this->pbar = GetControlById<UiProgressbar>(IDC_PROGR_PBAR);
+		this->pbar->SetRange(0,100);
+	}
+
+};

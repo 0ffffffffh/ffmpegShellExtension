@@ -130,9 +130,9 @@ private:
 			strcpy(streamInfo->codecType,val->c_str());
 
 			if (!strcmp(streamInfo->codecType,"video"))
-				this->type == SrcVideo;
+				this->type = SrcVideo;
 			else if (!strcmp(streamInfo->codecType,"audio"))
-				this->type == SrcAudio;
+				this->type = SrcAudio;
 		}
 		else if (*key == "codec_tag_string")
 			strcpy(streamInfo->codecTag,val->c_str());
@@ -171,7 +171,6 @@ private:
 	void SetInfo(LinkedList<AutoStringA *> *kvChain)
 	{
 		LinkedListNode<AutoStringA *> *node;
-		AutoStringA *m;
 		int4 si;
 
 		if (kvChain->GetCount() < 2)

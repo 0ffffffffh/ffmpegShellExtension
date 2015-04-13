@@ -289,6 +289,7 @@
     <ClInclude Include="src\include\helper\ByteBuffer.h" />
     <ClInclude Include="src\include\debug.h" />
     <ClInclude Include="src\include\Settings.h" />
+    <ClInclude Include="src\include\ui\ctrl\UiControlBase.h" />
     <ClInclude Include="src\include\ui\DialogImpls.h" />
     <ClInclude Include="src\include\dllmain.h" />
     <ClInclude Include="src\include\helper\DynamicArray.h" />
@@ -317,8 +318,9 @@
     <ClInclude Include="src\include\targetver.h" />
     <ClInclude Include="src\include\Types.h" />
     <ClInclude Include="src\include\ui\UI.h" />
-    <ClInclude Include="src\include\UiWrapper.h" />
+    <ClInclude Include="src\include\ui\UiWrapper.h" />
     <ClInclude Include="src\include\xdlldata.h" />
+    <ClInclude Include="src\include\ui\ctrl\UiProgressbar.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ffmpegShell.rc" />

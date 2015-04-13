@@ -75,7 +75,7 @@ namespace ffhelper
 
 		static wnstring PathJoin(wnstring base, wnstring fileName)
 		{
-			uint4 baseLen,fileNameLen,newLen;
+			uint4 baseLen,fileNameLen;
 			wnstring newPath;
 
 			if (base == NULL || fileName == NULL)

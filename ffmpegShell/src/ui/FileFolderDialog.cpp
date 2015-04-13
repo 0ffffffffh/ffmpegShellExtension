@@ -67,8 +67,6 @@ bool DlgOpenSpecialDialog(HWND hwnd, DialogType type, PCWCHAR title, PCWCHAR ini
 
 bool DlgOpenSpecialDialogEx(HWND hwnd, DialogType type, PCWCHAR title, PCWCHAR initialDirectory, PCWCHAR filter, DIALOG **dlgObject)
 {
-	bool result;
-
 	if (dlgObject == NULL)
 		return false;
 

@@ -46,7 +46,6 @@ public:
 	DECL_HANDLER(StartConvertingOperation)
 	{
 		vptr argPack;
-		WCHAR fileName[MAX_PATH];
 		FileList *fileList;
 		PRESET *preset;
 		int4 pkOff=0;
@@ -68,8 +67,7 @@ public:
 	{
 		WCHAR fileName[MAX_PATH];
 		FILEPATHITEM *item = CASTARG(FILEPATHITEM *);
-		ffmpegTime dt;
-
+		
 		FlGeneratePathString(item,fileName,MAX_PATH,PAS_NONE,NULL);
 
 		MediaInfo *mediaInfo = new MediaInfo((wnstring)fileName);
