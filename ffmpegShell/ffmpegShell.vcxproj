@@ -305,6 +305,7 @@
     <ClInclude Include="src\include\MenuHandlers.h" />
     <ClInclude Include="src\include\Synch.h" />
     <ClInclude Include="src\include\memory.h" />
+    <ClInclude Include="src\include\ui\lang\LanMan.h" />
     <ClInclude Include="src\include\ui\MenuMgr.h" />
     <ClInclude Include="src\include\platform.h" />
     <ClInclude Include="src\include\Preset.h" />

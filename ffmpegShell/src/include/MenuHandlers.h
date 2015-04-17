@@ -35,6 +35,12 @@ class MenuHandlers
 	 static MediaInfo *gps_MediaInfo;
 
 public:
+	DECL_HANDLER(About)
+	{
+		MessageBoxW(NULL,L"Oguz Kartal (c) 2015",L"About",MB_OK | MB_ICONINFORMATION);
+		HE_SUCCESS;
+	}
+
 	DECL_HANDLER(ShowSettings)
 	{
 		SettingsDlg * settings = new SettingsDlg();

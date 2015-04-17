@@ -180,6 +180,9 @@
     <ClInclude Include="src\include\ui\ctrl\UiControlBase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\include\ui\lang\LanMan.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ffmpegShell.rc">

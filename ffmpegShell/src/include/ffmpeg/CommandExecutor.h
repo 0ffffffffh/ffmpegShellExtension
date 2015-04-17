@@ -265,7 +265,7 @@ private:
 		wline = ffhelper::Helper::AnsiToWideString((anstring)line);
 
 		
-		if (ParseProcessedTime(wline,L"time=",&currTime))
+		if (ParseProcessedTime(wline,L"time",&currTime))
 		{
 			memset(wline,0,sizeof(wchar) * len);
 			

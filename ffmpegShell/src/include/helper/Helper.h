@@ -15,7 +15,7 @@ typedef BOOL ( WINAPI *PWOA)(
 );
 
 static HMODULE kernel32;
-static bool isWin8;
+static bool isWin8AndAbove;
 static PWOA pfnWaitOnAddress;
 
 extern wchar ge_ModuleDirW[MAX_PATH];
@@ -53,10 +53,10 @@ namespace ffhelper
 
 			GetVersionExW(&osVer);
 
-			isWin8 = osVer.dwMajorVersion == 6 && osVer.dwMinorVersion >= 2;
+			isWin8AndAbove = osVer.dwMajorVersion >= 6 && osVer.dwMinorVersion >= 2;
 
 
-			if (isWin8)
+			if (isWin8AndAbove)
 			{
 				kernel32 = LoadLibraryW(L"kernel32.dll");
 		
@@ -69,7 +69,7 @@ namespace ffhelper
 
 		static void UninitializeHelper()
 		{
-			if (isWin8)
+			if (isWin8AndAbove)
 				FreeLibrary(kernel32);
 		}
 
@@ -223,7 +223,7 @@ namespace ffhelper
 		{
 			uint4 p=0,v=0;
 
-			if (isWin8)
+			if (isWin8AndAbove)
 			{
 				if (!milliseconds)
 					milliseconds = 1;

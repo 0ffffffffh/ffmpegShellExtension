@@ -28,6 +28,7 @@ class FileReadWrite
 private:
 	HANDLE fileHandle;
 	LARGE_INTEGER filePointer;
+	LARGE_INTEGER fileSize;
 	wchar filePath[MAX_PATH];
 	ByteBuffer *buffer;
 	OpenMode mode;
@@ -53,16 +54,16 @@ private:
 		return 0;
 	}
 
-	long _Read(byte *buf, long offset, long count)
+	long _Read(byte *buf, long fileOffset, long count)
 	{
 		long readLen=0;
 		
-		if (offset > -1)
+		if (fileOffset > -1)
 		{
-			if (offset > this->filePointer.QuadPart)
-				this->vfp = offset - this->filePointer.QuadPart;
+			if (fileOffset > this->filePointer.QuadPart)
+				this->vfp = fileOffset - this->filePointer.QuadPart;
 			else
-				Seek(offset,Begin);
+				Seek(fileOffset,Begin);
 		}
 
 		if (this->refreshBuffer)
@@ -125,6 +126,14 @@ public:
 
 		if (this->fileHandle == INVALID_HANDLE_VALUE)
 			return false;
+
+		Seek(0,End);
+
+		GetNativeFilePointer();
+
+		this->fileSize.QuadPart = this->filePointer.QuadPart;
+
+		Seek(0,Begin);
 
 		this->refreshBuffer=true;
 		return true;
@@ -227,6 +236,11 @@ public:
 		}
 
 		return true;
+	}
+
+	int8 GetLength()
+	{
+		return (int8)this->fileSize.QuadPart;
 	}
 
 	OpenType GetOpenType() const

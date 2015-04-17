@@ -7,6 +7,7 @@
 #include "MenuHandlers.h"
 #include "Settings.h"
 #include "helper\ArgPack.h"
+#include "ui\lang\LanMan.h"
 
 //File system object list.
 FileList*					g_fileObjectList=NULL;
@@ -17,6 +18,7 @@ HWND						g_activeHwnd=NULL;
 FILEPATHITEM*				g_selectedFile;
 bool						g_presetsLoaded=FALSE;
 FORWARDED SETTINGS			g_settings;
+FORWARDED LanguageManager*	gs_LanMan;
 
 VOID AfterUiDestoryDisposerRoutine()
 {
@@ -55,7 +57,10 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	compiledPresetPath = ffhelper::Helper::MakeAppPath(L"presets.cpf");
 
 	if (!g_presetsLoaded)
+	{
 		g_presetsLoaded = PtLoadPreset(compiledPresetPath);
+		LanguageManager::Initialize(NULL);
+	}
 
 	FREESTRING(compiledPresetPath);
 
@@ -116,7 +121,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 		filePath = g_fileObjectList->GetLastObject();
 	}
 
-	MeAddItem(g_menu,MenuHandlers::ShowSettings,NULL,L"Settings");
+	MeAddItem(g_menu,MenuHandlers::ShowSettings,NULL,gs_LanMan->Format2(L"FSL_MN_SETTINGS"));
 
 	if (filePath != NULL)
 	{
@@ -125,7 +130,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 
 		if (!wcsicmp(filePath->objectExtension,L"pst"))
 		{
-			MeAddItem(g_menu,MenuHandlers::CompilePresetHandler,filePath,L"Compile preset");
+			MeAddItem(g_menu,MenuHandlers::CompilePresetHandler,filePath,gs_LanMan->Format2(L"FSL_MN_COMPILE"));
 		}
 		else
 		{
@@ -139,7 +144,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 			
 			if (matchedPresets != NULL)
 			{
-				MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,L"Show Video Info");
+				MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,gs_LanMan->Format2(L"FSL_MN_SHOW_MEDIA_INFO"));
 
 				if (matchedPresets->GetCount()>0)
 					MeAddSeperator(g_menu);
@@ -165,6 +170,10 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 			}
 		}
 	}
+
+	MeAddSeperator(g_menu);
+
+	MeAddItem(g_menu,MenuHandlers::About,NULL,gs_LanMan->Format2(L"FSL_MN_ABOUT"));
 
 	return MeActivateMenu(g_menu,hmenu);
 }
