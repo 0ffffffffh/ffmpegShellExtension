@@ -17,18 +17,39 @@ typedef std::map<wnstring, __langItemInfo *, stringComparer> LangKeyValueList;
 
 class LanguageManager;
 
-LanguageManager* gs_LanMan = NULL;
 
-const byte UNICODE_MARK[] = {0xff,0xfe};
+static LanguageManager* gs_LanMan = NULL;
+
+const byte _UNICODE_MARK[] = {0xff,0xfe};
+
+#define LANGSTR(str,...) gs_LanMan->Format2(L##str,__VA_ARGS__)
 
 class LanguageManager
 {
 private:
-	FileReadWrite *fileIo;
 	LangKeyValueList *langList;
 	wnstring langFileContent;
 
-	
+	void FreeLanguageListItemResources()
+	{
+		LangKeyValueList::iterator it;
+
+		if (this->langList == NULL)
+			return;
+
+		for (it = this->langList->begin();
+			it != this->langList->end();
+			it++)
+		{
+			if (it->second->formattedStringBuffer != NULL)
+				FREESTRING(it->second->formattedStringBuffer);
+
+			FREEOBJECT(it->second);
+		}
+		
+		delete this->langList;
+	}
+
 	bool GetString(wnstring key, __langItemInfo **langItem)
 	{
 		LangKeyValueList::iterator it;
@@ -86,16 +107,32 @@ private:
 
 	void InitializeWithDefaults()
 	{
+		InsertLanguageString(L"FSL_MSG_COMPILING",L"Compiling %s...\r\n",true);
+		InsertLanguageString(L"FSL_MSG_COMPILED_SUCCESS",L"Preset compiled successfuly.\r\n",true);
+		InsertLanguageString(L"FSL_MSG_COMPILE_FAILED",L"Preset could not compiled.\r\n",true);
+		InsertLanguageString(L"FSL_MSG_ACQUIRING_MEDIA_INFO",L"Initializing and acquiring media info...",true);
+		InsertLanguageString(L"FSL_MSG_PROCESSING",L"Processing (%d%%)",true);
+
 		InsertLanguageString(L"FSL_MN_SETTINGS",L"Settings",true);
 		InsertLanguageString(L"FSL_MN_COMPILE",L"Compile preset",true);
 		InsertLanguageString(L"FSL_MN_ABOUT",L"About",true);
 		InsertLanguageString(L"FSL_MN_SHOW_MEDIA_INFO",L"Show media info",true);
 
+		InsertLanguageString(L"FSL_UI_GEN_OK_BUTTON",L"Ok",true);
+
 		InsertLanguageString(L"FSL_UI_SETTING_TITLE",L"Settings",true);
 		InsertLanguageString(L"FSL_UI_SETTING_FFMPEG_DIR_STATIC",L"ffmpeg binary directory:",true);
-		InsertLanguageString(L"FSL_UI_SETTING_CURRENT_LANG",L"Language:",true);
+		InsertLanguageString(L"FSL_UI_SETTING_CURRENT_LANG_STATIC",L"Language:",true);
 		InsertLanguageString(L"FSL_UI_SETTING_BROWSE_BUTTON",L"Browse",true);
 		
+		InsertLanguageString(L"FSL_UI_COMPILE_TITLE",L"Compling",true);
+
+		InsertLanguageString(L"FSL_UI_PSTVALUE_TITLE",L"User provided variable",true);
+		InsertLanguageString(L"FSL_UI_PSTVALUE_VBIT_STATIC",L"Video bitrate:",true);
+		InsertLanguageString(L"FSL_UI_PSTVALUE_ABIT_STATIC",L"Audio bitrate:",true);
+		InsertLanguageString(L"FSL_UI_PSTVALUE_STARTTIME_STATIC",L"Start time (-ss):",true);
+		InsertLanguageString(L"FSL_UI_PSTVALUE_DURLEN_STATIC",L"Duration/Length (-t,-to):",true);
+
 		//etc.
 	}
 
@@ -104,7 +141,7 @@ private:
 		wchar *pstr = this->langFileContent;
 		wchar *temp=pstr,*key = NULL,*val = NULL;
 
-		while (*pstr != NULL)
+		while (*pstr != 0)
 		{
 			if (*pstr == L'=')
 			{
@@ -136,7 +173,6 @@ private:
 public:
 	LanguageManager()
 	{
-		this->fileIo = NULL;
 		this->langFileContent = NULL;
 
 		this->langList = new LangKeyValueList();
@@ -144,71 +180,65 @@ public:
 
 	~LanguageManager()
 	{
-		if (this->fileIo != NULL)
-			delete this->fileIo;
-
-		//TODO: release langItem objects
-		if (this->langList != NULL)
-			delete this->langList;
+		FreeLanguageListItemResources();
 
 		FREESTRING(this->langFileContent);
 	}
 
-	static bool Initialize(wnstring langFile)
+	static void Initialize(wnstring langFile)
 	{
-		byte buffer[128];
-
+		byte buffer[2];
+		FileReadWrite *fileIo = NULL;
 		LanguageManager *lanMan = NULL;
 		
-		if (gs_LanMan != NULL && langFile == NULL)
-			goto exitSuccess;
-		
+		if (gs_LanMan != NULL)
+		{
+			if (langFile == NULL || *langFile == 0)
+				return;
+		}
+
 		lanMan = new LanguageManager();
 
 		lanMan->InitializeWithDefaults();
 
-		if (langFile == NULL)
+		fileIo = new FileReadWrite(langFile,OpenForRead,OpenExisting);
+
+		if (!fileIo->Open())
 			goto exitSuccess;
 
-		lanMan->fileIo = new FileReadWrite(langFile,OpenForRead,OpenExisting);
-
-		if (!lanMan->fileIo->Open())
+		if (fileIo->Read(buffer,0,2))
 		{
-			delete lanMan;
-			return false;
-		}
-
-		if (lanMan->fileIo->Read(buffer,0,2))
-		{
-			if (buffer[0] != UNICODE_MARK[0] ||
-				buffer[1] != UNICODE_MARK[1])
+			if (buffer[0] != _UNICODE_MARK[0] ||
+				buffer[1] != _UNICODE_MARK[1])
 			{
-				delete lanMan;
-				return false;
+				fileIo->Close();
+				delete fileIo;
+
+				goto exitSuccess;
 			}
 		}
 
 		//Release previously loaded language resources
 		if (gs_LanMan != NULL)
 		{
-			delete gs_LanMan;
-			gs_LanMan = NULL;
+			LanguageManager::Destory();
 		}
 
-		lanMan->langFileContent = ALLOCSTRINGW(lanMan->fileIo->GetLength());
+		lanMan->langFileContent = ALLOCSTRINGW(fileIo->GetLength());
 
-		lanMan->fileIo->Read(
+		fileIo->Read(
 			(byte *)lanMan->langFileContent,
-			-1,lanMan->fileIo->GetLength() - sizeof(UNICODE_MARK));
+			-1,fileIo->GetLength() - sizeof(_UNICODE_MARK));
 
 
-		lanMan->InitializeWithDefaults();
+		fileIo->Close();
+		delete fileIo;
+
 		lanMan->ParseLanguageContent();
 
-	exitSuccess:
-		gs_LanMan = lanMan;
-
-		return true;
+exitSuccess:
+		if (gs_LanMan == NULL)
+			gs_LanMan = lanMan;
 	}
 
 	static void Destory()

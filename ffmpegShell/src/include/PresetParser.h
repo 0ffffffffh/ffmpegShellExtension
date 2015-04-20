@@ -56,7 +56,7 @@ typedef struct
 
 #define _CL(vl,size) ((vl >= size) ? (size-1) : vl)
 
-typedef void (*COMPILATION_EVENT_HANDLER)(void *, LPCSTR);
+typedef void (*COMPILATION_EVENT_HANDLER)(void *, wnstring);
 
 static __forceinline void LazyWcsToMb(wnstring wstr, anstring abuf)
 {
@@ -190,14 +190,14 @@ private:
 		dest->preset.opType = src->preset.opType;
 	}
 
-	bool RaiseError(LinkedListNode<TOKENINFO *> *node, const char *err)
+	bool RaiseError(LinkedListNode<TOKENINFO *> *node, const wchar *err)
 	{
 		TOKENINFO *tokPtr;
-		char buf[512]={0};
+		wchar buf[512]={0};
 
 		tokPtr = node->GetValue();
 
-		sprintf(buf,"Syntax error at Line: %d, Pos: %d (%s)",tokPtr->line,tokPtr->pos,err);
+		wsprintf(buf,L"Syntax error at Line: %d, Pos: %d (%s)",tokPtr->line,tokPtr->pos,err);
 
 		if (this->eventHandler != NULL)
 			this->eventHandler(this->handlerArg,buf);
@@ -215,17 +215,17 @@ private:
 
 	bool HandleForINVALID(LinkedListNode<TOKENINFO *> **token)
 	{
-		return RaiseError(*token,"Invalid token");
+		return RaiseError(*token,L"Invalid token");
 	}
 
 	bool HandleForSemiColon(LinkedListNode<TOKENINFO *> **token)
 	{
-		return RaiseError(*token,"Invalid semi-colon (;) usage");
+		return RaiseError(*token,L"Invalid semi-colon (;) usage");
 	}
 
 	bool HandleForComma(LinkedListNode<TOKENINFO *> **token)
 	{
-		return RaiseError(*token,"Invalid comma usage");
+		return RaiseError(*token,L"Invalid comma usage");
 	}
 
 	bool HandleForBraceClose(LinkedListNode<TOKENINFO *> **token)
@@ -233,14 +233,14 @@ private:
 		if (PresetParser::ps_PresetObject->waitingProperty ||
 			PresetParser::ps_PresetObject->waitingPropertyValue)
 		{
-			return RaiseError(*token,"Uncompleted property definition exists before }");
+			return RaiseError(*token,L"Uncompleted property definition exists before }");
 		}
 
 		if (!(*token)->HasNext())
-			return RaiseError(*token,"Uncompleted preset type definition. Missing (;) end of the type");
+			return RaiseError(*token,L"Uncompleted preset type definition. Missing (;) end of the type");
 
 		if ((*token)->Next()->GetValue()->type != SemiColon)
-			return RaiseError(*token,"Uncompleted preset type definition. Missing (;) end of the type");
+			return RaiseError(*token,L"Uncompleted preset type definition. Missing (;) end of the type");
 
 		*token = (*token)->Next();
 
@@ -254,12 +254,12 @@ private:
 	{
 		if (!(*token)->HasPrevious())
 		{
-			return RaiseError(*token,"Property expected");
+			return RaiseError(*token,L"Property expected");
 		}
 
 		if ( !IsPropertyToken( (*token)->Previous()->GetValue() ) )
 		{
-			return RaiseError(*token,"Property expected");
+			return RaiseError(*token,L"Property expected");
 		}
 
 		PresetParser::ps_PresetObject->waitingPropertyValue=true;
@@ -285,11 +285,11 @@ private:
 				return true;
 			}
 
-			return RaiseError(*token,"Invalid string token");
+			return RaiseError(*token,L"Invalid string token");
 		}
 
 		if (!presetInstance->waitingPropertyValue)
-			return RaiseError(tokNode,"Expected property name before");
+			return RaiseError(tokNode,L"Expected property name before");
 
 		if (presetInstance->waitingPropertyId == KWMEDIATYPE ||
 			presetInstance->waitingPropertyId == KWOPTYPE)
@@ -300,14 +300,14 @@ private:
 					tokNode->GetValue()->data)
 					)
 			{
-				return RaiseError(tokNode,"Invalid property value");
+				return RaiseError(tokNode,L"Invalid property value");
 			}
 
 			if (!tokNode->HasNext())
-				return RaiseError(tokNode,"; expected");
+				return RaiseError(tokNode,L"; expected");
 
 			if (tokNode->Next()->GetValue()->type != SemiColon)
-				return RaiseError(tokNode,"; expected");
+				return RaiseError(tokNode,L"; expected");
 
 			presetInstance->waitingProperty = false;
 			presetInstance->waitingPropertyId = KWNOTKEYWORD;
@@ -326,7 +326,7 @@ private:
 		tokNode = *token;
 
 		if (str == NULL)
-			return RaiseError(tokNode,"String value expected");
+			return RaiseError(tokNode,L"String value expected");
 
 
 		SetObjectProperty(
@@ -337,10 +337,10 @@ private:
 
 		
 		if (!tokNode->HasNext())
-			return RaiseError(tokNode,"; expected");
+			return RaiseError(tokNode,L"; expected");
 		
 		if (tokNode->Next()->GetValue()->type != SemiColon)
-			return RaiseError(tokNode,"; expected");
+			return RaiseError(tokNode,L"; expected");
 
 		presetInstance->waitingProperty = false;
 		presetInstance->waitingPropertyId = KWNOTKEYWORD;
@@ -356,9 +356,8 @@ private:
 		KEYWORD keyword;
 		PRESETOBJECT *presetInstance;
 
-		char buf[512]={0};
-		int4 slen;
-
+		wchar buf[512]={0};
+		
 		LinkedListNode<TOKENINFO *> *tokNode = *token;
 
 		
@@ -376,8 +375,7 @@ private:
 				}
 			}
 
-			slen = sprintf(buf,"unknown identifier : ");
-			LazyWcsToMb(tokNode->GetValue()->data,buf+slen);
+			wsprintf(buf,L"unknown identifier : %s",tokNode->GetValue()->data);
 			
 			RaiseError(tokNode,buf);
 			return false;
@@ -387,13 +385,13 @@ private:
 		{
 			if (!tokNode->HasNext())
 			{
-				RaiseError(tokNode,"not completed preset structure");
+				RaiseError(tokNode,L"not completed preset structure");
 				return false;
 			}
 
 			if (tokNode->Next()->GetValue()->type != BraceOpen)
 			{
-				RaiseError(tokNode,"syntax error. expected { ");
+				RaiseError(tokNode,L"syntax error. expected { ");
 				return false;
 			}
 
@@ -420,13 +418,13 @@ private:
 		
 		if (iter->GetValue()->type != DoubleQuotes)
 		{
-			RaiseError(iter,"Internal error");
+			RaiseError(iter,L"Internal error");
 			return NULL;
 		}
 
 		if (!iter->HasNext())
 		{
-			RaiseError(iter,"String content expected.");
+			RaiseError(iter,L"String content expected.");
 			return NULL;
 		}
 
@@ -485,7 +483,7 @@ private:
 		if (!done)
 		{
 			delete string;
-			RaiseError(iter,"string was not terminated with quote");
+			RaiseError(iter,L"string was not terminated with quote");
 			return NULL;
 		}
 

@@ -252,9 +252,10 @@ private:
 
 	static void OnStdoutLineReceived(vptr arg, LPCSTR line)
 	{
+		uint4 progressTimePos;
 		uint4 len;
 		ffmpegTime currTime;
-
+		UiProgressbar *pb;
 		wnstring wline;
 
 		CommandExecutor *_this = (CommandExecutor *)arg;
@@ -263,7 +264,6 @@ private:
 		//TODO: Dont forget to remove that ugly & quick code
 		len = strlen(line);
 		wline = ffhelper::Helper::AnsiToWideString((anstring)line);
-
 		
 		if (ParseProcessedTime(wline,L"time",&currTime))
 		{
@@ -272,7 +272,11 @@ private:
 			wsprintf(wline,L"TIME: %d hr. %d min. %d sec",
 				currTime.hours,currTime.minutes,currTime.seconds);
 
-			_this->progressWnd->SetControlText(IDC_LBLPROGR_STAT,(wnstring)wline);
+			_this->progressWnd->SetProgressStatusText(wline);
+			
+			progressTimePos = FFTIME_TO_SECONDS(&currTime);
+
+			_this->progressWnd->UpdateProgress(progressTimePos);
 		}
 
 		FREESTRING(wline);
@@ -494,6 +498,33 @@ private:
 		}
 	}
 
+	void CalculateAndSetProgressBarLength()
+	{
+		uint4 startLen,pos;
+
+		startLen = FFTIME_TO_SECONDS(&this->cmdInfo.ss);
+		
+		pos = FFTIME_TO_SECONDS(&this->cmdInfo.t);
+
+		if (!pos)
+			pos = FFTIME_TO_SECONDS(&this->cmdInfo.to);
+		else
+		{
+			//duration
+			this->progressWnd->SetProgressMax(pos);
+			return;
+		}
+
+		if (!pos)
+		{
+			pos = FFTIME_TO_SECONDS(&this->sourceTimeLength);
+		}
+
+		//position or entire media length
+		this->progressWnd->SetProgressMax(pos - startLen);
+
+	}
+
 	void TryDetectStaticTimeDuration(wnstring cmd, ffmpegCommandInfo *cmdInfo)
 	{
 		wnstring pTok;
@@ -617,7 +648,9 @@ public:
 	void Execute(PRESET *preset, FileList *fileList)
 	{
 		wnstring ffmpegCmd = NULL;
+		wnstring referenceSource=NULL;
 		ffmpegProcess *process = NULL;
+		MediaInfo *mediaInfo;
 		LinkedListNode<__cmd_var *> *cvarNode = NULL,*tmpNode=NULL;
 		__cmd_var *cvar;
 		uint4 outfCount=0;
@@ -662,6 +695,17 @@ public:
 				//Raise error
 			}
 			
+			//try find reference input source
+			if (!wcsicmp(node->GetValue()->objectExtension,preset->sourceFormat))
+			{
+				if (referenceSource == NULL)
+				{
+					//gotcha.
+					referenceSource = ALLOCSTRINGW(MAX_PATH);
+					FlGeneratePathString(node->GetValue(),referenceSource,MAX_PATH,PAS_NONE,NULL);
+				}
+			}
+
 			//Ok. i found it. Link the variable to the file object
 			cvarNode->GetValue()->lfo = node->GetValue();
 
@@ -748,15 +792,31 @@ beginAgain:
 
 		this->progressWnd->WaitForInitCompletion();
 
+		this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_ACQUIRING_MEDIA_INFO"));
+
+		mediaInfo = new MediaInfo(referenceSource);
+		mediaInfo->GetMediaDuration(&this->sourceTimeLength);
+
+		delete mediaInfo;
+		FREESTRING(referenceSource);
+
+		this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_PROCESSING",0));
+
+		this->CalculateAndSetProgressBarLength();
+
 		process->OnLineReceived = CommandExecutor::OnStdoutLineReceived;
 		process->SetArg(ffmpegCmd);
 		process->Start(this);
 		process->Wait(true);
 		
-		this->progressWnd->Close();
+		this->progressWnd->SetProgressStatusText(L"OK");
 
-		delete this->progressWnd;
-		this->progressWnd = NULL;
+		this->progressWnd->UpdateProgress(ULONG_MAX);
+
+		//this->progressWnd->Close();
+
+		//delete this->progressWnd;
+		//this->progressWnd = NULL;
 
 cleanUp:
 		delete varList;

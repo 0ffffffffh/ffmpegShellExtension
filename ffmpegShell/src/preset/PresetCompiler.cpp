@@ -4,6 +4,9 @@
 #include "FileReadWrite.h"
 #include "Preset.h"
 #include "FileList.h"
+#include "ui\lang\LanMan.h"
+
+FORWARDED LanguageManager*	gs_LanMan;
 
 FileReadWrite *PciOpenOutput(wnstring outputFile)
 {
@@ -93,9 +96,8 @@ bool PcCompilePreset(wnstring presetFile, wnstring outputFile, COMPILATION_EVENT
 
 	LinkedList<PRESETOBJECT *> *presetObjects;
 	
-	eventHandler(arg,"Compilation started...");
+	eventHandler(arg,LANGSTR("FSL_MSG_COMPILING",presetFile));
 
-	
 	if (lexer->Lex())
 	{
 		
@@ -109,9 +111,13 @@ bool PcCompilePreset(wnstring presetFile, wnstring outputFile, COMPILATION_EVENT
 	else
 		return false;
 
-	eventHandler(arg,"Parsed preset source. Compiling binary");
-
+	
 	result = PciCompilePreset(presetObjects,outputFile);
+
+	if (result)
+		eventHandler(arg,LANGSTR("FSL_MSG_COMPILED_SUCCESS"));
+	else
+		eventHandler(arg,LANGSTR("FSL_MSG_COMPILE_FAILED"));
 
 	delete lexer;
 	
@@ -173,7 +179,7 @@ bool PcDecompilePreset(wnstring compiledPresetFile)
 	}
 
 	dcmpFile->Write(PCF_MAGIC,-1);
-	dcmpFile->Write((byte *)codeText.GetNativeString(false),-1,codeText.GetLength() * sizeof(wchar));
+	dcmpFile->Write((byte *)codeText.c_str(),-1,codeText.GetLength() * sizeof(wchar));
 
 	delete dcmpFile;
 

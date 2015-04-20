@@ -258,10 +258,6 @@ private:
 		if (remain >= amount)
 			return true;
 
-		if (remain > 0)
-			amount -= remain;
-
-
 		if (amount < 32)
 			amount = 128;
 
@@ -314,7 +310,7 @@ private:
 	{
 		if (len > GetRemain())
 		{
-			if (!Extend(256 - (len - GetRemain())))
+			if (!Extend( (len - GetRemain()) + 128 ))
 				return false;
 		}
 
@@ -344,7 +340,7 @@ private:
 
 		if (reqBufLen > GetRemain())
 		{
-			if (!Extend(128 - (reqBufLen - GetRemain())))
+			if (!Extend( (reqBufLen - GetRemain()) + 128 ))
 				return false;
 		}
 		

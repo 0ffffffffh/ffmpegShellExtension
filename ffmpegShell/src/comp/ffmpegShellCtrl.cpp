@@ -1,3 +1,5 @@
+#pragma once
+
 #include "stdafx.h"
 #include "ffmpegShellCtrl.h"
 #include "ui\MenuMgr.h"
@@ -54,17 +56,17 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 		return E_FAIL;
 	}
 
+	IntLoadSettings();
+
 	compiledPresetPath = ffhelper::Helper::MakeAppPath(L"presets.cpf");
 
 	if (!g_presetsLoaded)
 	{
 		g_presetsLoaded = PtLoadPreset(compiledPresetPath);
-		LanguageManager::Initialize(NULL);
+		LanguageManager::Initialize(g_settings.langFilename);
 	}
 
 	FREESTRING(compiledPresetPath);
-
-	IntLoadSettings();
 
 	DbDebugPrint("fileObjectList = %p",g_fileObjectList);
 
@@ -121,7 +123,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 		filePath = g_fileObjectList->GetLastObject();
 	}
 
-	MeAddItem(g_menu,MenuHandlers::ShowSettings,NULL,gs_LanMan->Format2(L"FSL_MN_SETTINGS"));
+	MeAddItem(g_menu,MenuHandlers::ShowSettings,NULL,LANGSTR("FSL_MN_SETTINGS"));
 
 	if (filePath != NULL)
 	{
@@ -130,7 +132,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 
 		if (!wcsicmp(filePath->objectExtension,L"pst"))
 		{
-			MeAddItem(g_menu,MenuHandlers::CompilePresetHandler,filePath,gs_LanMan->Format2(L"FSL_MN_COMPILE"));
+			MeAddItem(g_menu,MenuHandlers::CompilePresetHandler,filePath,LANGSTR("FSL_MN_COMPILE"));
 		}
 		else
 		{
@@ -144,7 +146,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 			
 			if (matchedPresets != NULL)
 			{
-				MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,gs_LanMan->Format2(L"FSL_MN_SHOW_MEDIA_INFO"));
+				MeAddItem(g_menu,MenuHandlers::ShowMediaInformations,filePath,LANGSTR("FSL_MN_SHOW_MEDIA_INFO"));
 
 				if (matchedPresets->GetCount()>0)
 					MeAddSeperator(g_menu);
@@ -173,7 +175,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 
 	MeAddSeperator(g_menu);
 
-	MeAddItem(g_menu,MenuHandlers::About,NULL,gs_LanMan->Format2(L"FSL_MN_ABOUT"));
+	MeAddItem(g_menu,MenuHandlers::About,NULL,LANGSTR("FSL_MN_ABOUT"));
 
 	return MeActivateMenu(g_menu,hmenu);
 }

@@ -12,6 +12,9 @@ typedef struct
 	uint4 milliseconds;
 }ffmpegTime;
 
+#define FFTIME_TO_SECONDS( fftime ) \
+	((fftime)->hours * 60 * 60) + ((fftime)->minutes * 60) + ((fftime)->seconds)
+
 typedef enum
 {
 	SrcVideo,
@@ -20,17 +23,18 @@ typedef enum
 
 typedef struct
 {
-	char codecName[16];
-	char codecType[16];
-	char codecTag[8];
-	char aspectRatio[6];
-	ffmpegTime duration;
-	uint4 width;
-	uint4 height;
-	uint4 bitRate;
-	uint4 numberOfFrames;
-	uint4 sampleRate;
-	uint4 channels;
+	char				codecName[16];
+	char				codecType[16];
+	char				codecTag[8];
+	char				aspectRatio[6];
+	ffmpegTime			duration;
+	MediaSourceType		streamType;
+	uint4				width;
+	uint4				height;
+	uint4				bitRate;
+	uint4				numberOfFrames;
+	uint4				sampleRate;
+	uint4				channels;
 }StreamInfo;
 
 LinkedList<AutoStringA*> *FpParseInfo(LPCSTR line)
@@ -93,7 +97,7 @@ private:
 	uint8 size;
 	MediaSourceType type;
 	StreamInfo streams[2];
-
+	uint4 streamCount;
 	ffmpegProcess *process;
 	wchar mediaFileName[MAX_PATH];
 	DynamicArray<LinkedList<AutoStringA *> *> ffprobeInfoList;
@@ -113,6 +117,32 @@ private:
 		dt->milliseconds = d * 1000;
 	}
 
+	int4 CompareffmpegTime(ffmpegTime *t1, ffmpegTime *t2)
+	{
+		uint4 t1Total=0,t2Total=0;
+
+		if (t1 == NULL)
+		{
+			if (t2 == NULL)
+				return 0;
+
+			return -1;
+		}
+
+		if (t2 == NULL)
+		{
+			if (t1 == NULL)
+				return 0;
+
+			return 1;
+		}
+
+		t1Total = FFTIME_TO_SECONDS(t1);
+		t2Total = FFTIME_TO_SECONDS(t2);
+
+		return (t1Total > t2Total) ? 1 : (t1Total < t2Total) ? -1 : 0;
+	}
+
 	void SetStreamProperty(LinkedList<AutoStringA *> *kvChain, int4 streamIndex)
 	{
 		StreamInfo *streamInfo;
@@ -123,6 +153,9 @@ private:
 		
 		streamInfo = &this->streams[streamIndex];
 
+		if (streamIndex+1 > this->streamCount)
+			this->streamCount = streamIndex+1;
+
 		if (*key == "codec_name")
 			strcpy(streamInfo->codecName,val->c_str());
 		else if (*key == "codec_type")
@@ -130,9 +163,15 @@ private:
 			strcpy(streamInfo->codecType,val->c_str());
 
 			if (!strcmp(streamInfo->codecType,"video"))
+			{
 				this->type = SrcVideo;
+				streamInfo->streamType = SrcVideo;
+			}
 			else if (!strcmp(streamInfo->codecType,"audio"))
+			{
+				streamInfo->streamType = SrcAudio;
 				this->type = SrcAudio;
+			}
 		}
 		else if (*key == "codec_tag_string")
 			strcpy(streamInfo->codecTag,val->c_str());
@@ -222,6 +261,12 @@ private:
 		this->ffprobeInfoList.ReleaseMemory();
 	}
 
+	static void KvDisposer(void *obj)
+	{
+		AutoStringA *astr = (AutoStringA *)obj;
+		delete astr;
+	}
+
 	static void OnStdoutLineReceived(vptr arg, LPCSTR line)
 	{
 		MediaInfo *_this = (MediaInfo *)arg;
@@ -230,27 +275,43 @@ private:
 		infoKv = FpParseInfo(line);
 		
 		if (infoKv != NULL)
+		{
+			infoKv->SetDisposer(KvDisposer);
 			_this->ffprobeInfoList.Add(infoKv);
+		}
 	}
 
 public:
 	MediaInfo(wnstring mediaFile)
 	{
 		wcscpy(this->mediaFileName,mediaFile);
-
+		this->streamCount=0;
 		Initialize();
 	}
 
 	bool GetMediaDuration(ffmpegTime *mt)
 	{
-		//TODO: Valitate
-		memcpy(mt,&this->streams[0].duration,sizeof(ffmpegTime));
+		ffmpegTime *maxTime=NULL;
+		
+
+		//TODO: Do this thing on the stream info initialization at once
+
+		for (int4 i=0;i<this->streamCount;i++)
+		{
+			if (CompareffmpegTime(&this->streams[i].duration,maxTime) > 0)
+				maxTime = &this->streams[i].duration;
+		}
+
+		memcpy(mt,maxTime,sizeof(ffmpegTime));
+
 		return true;
 	}
 
 	uint4 GetBitrate(uint4 streamIndex) const
 	{
-		//TODO: Validate stream index
+		if (streamIndex >= this->streamCount)
+			return 0;
+		
 		return this->streams[streamIndex].bitRate;
 	}
 

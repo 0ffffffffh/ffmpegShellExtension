@@ -157,6 +157,11 @@ public:
 		return GetWindowTextW(ctrlHwnd,(LPWSTR)strBuf,bufSize);
 	}
 
+	void SetWindowTitle(wnstring title)
+	{
+		SetWindowTextW(this->uiObject->hwnd,title);
+	}
+
 	bool SetControlTextA(uint4 ctrlId, anstring str)
 	{
 		bool ret;

@@ -4,6 +4,7 @@
 #include "UiWrapper.h"
 #include "FileFolderDialog.h"
 #include "Settings.h"
+#include "lang\LanMan.h"
 #include <map>
 
 typedef enum 
@@ -20,6 +21,8 @@ inline InputVariableField& operator |=(InputVariableField &a, InputVariableField
 {
 	return a = ( (InputVariableField) ( ((int)a) | ((int)b) ) );
 }
+
+FORWARDED LanguageManager * gs_LanMan;
 
 class ffmpegVariableInputDialog : public UiWrapper
 {
@@ -110,6 +113,15 @@ public:
 		
 		if (this->fields & IvfPosition)
 			EnableControl(IDC_TXTDURATION);
+
+		SetWindowTitle(LANGSTR("FSL_UI_PSTVALUE_TITLE"));
+
+		SetControlText(IDC_LBL_PV_VBIT,LANGSTR("FSL_UI_PSTVALUE_VBIT_STATIC"));
+		SetControlText(IDC_LBL_PV_ABIT,LANGSTR("FSL_UI_PSTVALUE_ABIT_STATIC"));
+		SetControlText(IDC_LBL_PV_STARTTIME,LANGSTR("FSL_UI_PSTVALUE_STARTTIME_STATIC"));
+		SetControlText(IDC_LBL_PV_DURLEN,LANGSTR("FSL_UI_PSTVALUE_DURLEN_STATIC"));
+		SetControlText(IDC_BTNOK,LANGSTR("FSL_UI_GEN_OK_BUTTON"));
+
 	}
 
 	bool ShowDialog()
@@ -174,7 +186,13 @@ public:
 	void AddStatusLine(wnstring status)
 	{
 		this->status->AppendFormat(L"%s\r\n",status);
-		SetControlText(IDC_TXTCOMPILELOG,this->status->GetNativeString(false));
+		SetControlText(IDC_TXTCOMPILELOG,this->status->c_str());
+	}
+
+	void OnInit()
+	{
+		this->SetWindowTitle(LANGSTR("FSL_UI_COMPILE_TITLE"));
+		this->SetControlText(IDC_BTNDCOK,LANGSTR("FSL_UI_GEN_OK_BUTTON"));
 	}
 };
 
@@ -219,6 +237,15 @@ public:
 		}
 	}
 
+	void OnInit()
+	{
+		this->SetWindowTitle(LANGSTR("FSL_UI_SETTING_TITLE"));
+		this->SetControlText(IDC_LBLSETTING_BINDIR, LANGSTR("FSL_UI_SETTING_FFMPEG_DIR_STATIC"));
+		this->SetControlText(IDC_LBLSETTING_LANG,LANGSTR("FSL_UI_SETTING_CURRENT_LANG_STATIC"));
+		this->SetControlText(IDC_BTNBROWSE,LANGSTR("FSL_UI_SETTING_BROWSE_BUTTON"));
+
+	}
+
 };
 
 #include "ctrl\UiProgressbar.h"
@@ -238,6 +265,25 @@ public:
 		delete this->pbar;
 	}
 
+	void UpdateProgress(uint4 pos)
+	{
+		if (pos == ULONG_MAX)
+			this->pbar->Finish();
+		else
+			this->pbar->SetPos(pos);
+	}
+
+	void SetProgressStatusText(wnstring status)
+	{
+		SetControlText(IDC_LBLPROGR_STAT,status);
+	}
+
+	void SetProgressMax(uint4 max)
+	{
+		this->pbar->SetRange(0,max);
+	}
+
+
 	void OnCommand(WPARAM wp, LPARAM lp)
 	{
 	}
@@ -247,5 +293,7 @@ public:
 		this->pbar = GetControlById<UiProgressbar>(IDC_PROGR_PBAR);
 		this->pbar->SetRange(0,100);
 	}
+
+	
 
 };

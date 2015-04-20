@@ -40,6 +40,11 @@ public:
 		this->rMax = max;
 	}
 
+	void Finish()
+	{
+		SetPos(this->rMax);
+	}
+
 	void SetPos(uint4 pos)
 	{
 		if (pos > this->rMax)

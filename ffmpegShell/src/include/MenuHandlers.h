@@ -20,16 +20,11 @@
 
 class MenuHandlers
 {
-	 static void CompilationEventHandler(void *p, LPCSTR msg)
+	 static void CompilationEventHandler(void *p, wnstring msg)
 	 {
-		 wnstring ws = mbtowc_h(msg);
 		 CompileDialog *dlg = (CompileDialog *)p;
 
-		 dlg->AddStatusLine(ws);
-
-		 //dlg->SetControlText(IDC_TXTCOMPILELOG,ws);
-
-		 FREESTRING(ws);
+		 dlg->AddStatusLine(msg);
 	 }
 
 	 static MediaInfo *gps_MediaInfo;

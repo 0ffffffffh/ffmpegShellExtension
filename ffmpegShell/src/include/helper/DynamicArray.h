@@ -163,11 +163,16 @@ public:
 	DynamicArray()
 	{
 		Init(10, NULL);
+		memset(&this->None,0,sizeof(T));
 	}
 
 	~DynamicArray(void)
 	{
-		MemoryFree(this->array);
+		if (this->array != NULL)
+		{
+			MemoryFree(this->array);
+			this->array = NULL;
+		}
 	}
 
 	T None;
@@ -224,7 +229,11 @@ public:
 
 	void ReleaseMemory()
 	{
-		MemoryFree(this->array);
+		if (this->array != NULL)
+		{
+			MemoryFree(this->array);
+			this->array=NULL;
+		}
 	}
 };
 

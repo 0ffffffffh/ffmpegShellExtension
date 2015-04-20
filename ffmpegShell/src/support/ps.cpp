@@ -75,6 +75,8 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 	//Do the initial peek for a bit long
 	handleIndex = _PsihPeekAvailableBytesOnPipe(stdHandles,HANDLE_COUNT,20,100,NULL);
 
+	DPRINT("Initial seed: %d\r\n",handleIndex);
+
 	if (handleIndex < 0)
 		handleIndex = 0;
 
@@ -82,10 +84,12 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 	{
 		_PsihPeekAvailableBytesOnPipe(&stdHandles[handleIndex],1,5,50,&totalAvail);
 
+		DPRINT("Total avail %d bytes on #%d\r\n",totalAvail,handleIndex);
 		
 		if (totalAvail > 0 && ReadFile(stdHandles[handleIndex],buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
 		{
-			
+			DPRINT("%d bytes readed\r\n #%d\r\n",readLen,handleIndex);
+
 			buffer.SetWrittenSize(readLen);
 			bufLen = buffer.GetLength();
 			
@@ -122,6 +126,8 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 		}
 		else
 		{
+			DPRINT("Passing next handle\r\n");
+
 			handleIndex++;
 
 			if (buffer.GetLength() > 0)
@@ -133,6 +139,8 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 			}
 			else
 			{
+				_PsihPeekAvailableBytesOnPipe(&stdHandles[handleIndex],1,20,100,NULL);
+				
 				pos = 0;
 				bufLen = 0;
 				buffer.Clear();
