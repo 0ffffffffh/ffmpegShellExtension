@@ -19,7 +19,7 @@ void _PsihDispatchCallback(PROCESS *process, int length)
 INT _PsihPeekAvailableBytesOnPipe(
 	HANDLE *pipeHandles,
 	INT handleCount, 
-	INT peekTry, 
+	INT peekTry,	
 	DWORD peekDelay,
 	PDWORD totalAvailableBytes)
 {
@@ -51,51 +51,71 @@ INT _PsihPeekAvailableBytesOnPipe(
 	return -1;
 }
 
+HANDLE _PsiGetCurrentHandle(PROCESS *process)
+{
+	return process->stdPipeHandles[process->currentPipeHandleIndex];
+}
+
 UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 {
 	PROCESS *process = (PROCESS *)p;
 	DWORD readLen=0,totalAvail;
+	HANDLE stdHandle;
 	int4 pos=0,bufLen=0;
-	int4 handleIndex=0;
+	int4 bufferEndLastChanceWaitTryCount=8;
+
 	ByteBuffer buffer(0x1000);
 	BOOL keepRun=TRUE,crLf=FALSE;
+	INT index;
 	
-	HANDLE stdHandles[2] =
-	{
-		process->stdErrPipeHandle, //read stderr first.
-		process->stdOutPipeHandle
-	};
-
-	const uint4 HANDLE_COUNT = sizeof(stdHandles) / sizeof(HANDLE);
-
 	if (!process->running)
 		return 0;
 
 
+	
 	//Do the initial peek for a bit long
-	handleIndex = _PsihPeekAvailableBytesOnPipe(stdHandles,HANDLE_COUNT,20,100,NULL);
+	index = _PsihPeekAvailableBytesOnPipe(process->stdPipeHandles,PS_PIPE_HANDLE_COUNT,20,100,NULL);
 
-	DPRINT("Initial seed: %d\r\n",handleIndex);
+	AcquireSpinLock(&process->stdPipeIoLock);
 
-	if (handleIndex < 0)
-		handleIndex = 0;
+	if (index < 0)
+	{
+		DPRINT("There is no ready pipe for read. Assumed stderr");
+		process->currentPipeHandleIndex = PS_STDERR_PIPE_HANDLE;
+	}
+	else
+		process->currentPipeHandleIndex = index;
 
+	ReleaseSpinLock(&process->stdPipeIoLock);
+
+
+	DPRINT("Initial seed: %d",process->currentPipeHandleIndex);
+
+	
 	while (keepRun)
 	{
-		_PsihPeekAvailableBytesOnPipe(&stdHandles[handleIndex],1,5,50,&totalAvail);
+		stdHandle = _PsiGetCurrentHandle(process);
 
-		DPRINT("Total avail %d bytes on #%d\r\n",totalAvail,handleIndex);
+		_PsihPeekAvailableBytesOnPipe(&stdHandle,1,5,50,&totalAvail);
+
+		DPRINT("Total avail %d bytes on #%d",totalAvail,process->currentPipeHandleIndex);
 		
-		if (totalAvail > 0 && ReadFile(stdHandles[handleIndex],buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
+		if (totalAvail > 0 && ReadFile(stdHandle,buffer.GetWritableBuffer(),buffer.GetRemainSize(),&readLen,NULL))
 		{
-			DPRINT("%d bytes readed\r\n #%d\r\n",readLen,handleIndex);
+			DPRINT("%d bytes readed #%d",readLen,process->currentPipeHandleIndex);
 
 			buffer.SetWrittenSize(readLen);
 			bufLen = buffer.GetLength();
+
+
+			if (bufferEndLastChanceWaitTryCount < 8)
+			{
+				bufferEndLastChanceWaitTryCount=8;
+			}
 			
 			for (pos = 0; pos < buffer.GetLength(); pos++)
 			{
-				if ((char)buffer[pos] == '\n')
+				if ( ((char)buffer[pos]) == '\n' || ((char)buffer[pos] == '\r'))
 				{
 					if (pos > 0)
 						crLf = ((char)buffer[pos-1]) == '\r';
@@ -126,20 +146,34 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 		}
 		else
 		{
-			DPRINT("Passing next handle\r\n");
+			if (bufferEndLastChanceWaitTryCount >= 0)
+			{
+				bufferEndLastChanceWaitTryCount--;
+				continue;
+			}
+			else
+				bufferEndLastChanceWaitTryCount=8;
 
-			handleIndex++;
+			DPRINT("Passing next handle");
+
+			AcquireSpinLock(&process->stdPipeIoLock);
+
+			process->currentPipeHandleIndex++;
+
+			ReleaseSpinLock(&process->stdPipeIoLock);
 
 			if (buffer.GetLength() > 0)
 				_PsihDispatchCallback(process,buffer.GetLength());
 
-			if (handleIndex == HANDLE_COUNT)
+			if (process->currentPipeHandleIndex == PS_PIPE_HANDLE_COUNT)
 			{
 				keepRun=FALSE;
 			}
 			else
 			{
-				_PsihPeekAvailableBytesOnPipe(&stdHandles[handleIndex],1,20,100,NULL);
+				stdHandle = _PsiGetCurrentHandle(process);
+
+				_PsihPeekAvailableBytesOnPipe(&stdHandle,1,20,100,NULL);
 				
 				pos = 0;
 				bufLen = 0;
@@ -249,8 +283,9 @@ PROCESS *PsExecuteProcessEx(wnstring processImageName, wnstring arg, STDOUT_RECE
 	
 	//So we collect some required things
 	process->processHandle = processInfo.hProcess;
-	process->stdOutPipeHandle = pipeRead;
-	process->stdErrPipeHandle = pipeErrRead;
+	process->stdPipeHandles[PS_STDOUT_PIPE_HANDLE] = pipeRead;
+	process->stdPipeHandles[PS_STDERR_PIPE_HANDLE] = pipeErrRead;
+
 	process->commandLine = cmdLine;
 
 	//allocate receive buffer
@@ -271,20 +306,23 @@ cleanUp: //Release the resources if it has failed
 	if (process->stdOutWorkerHandle != NULL)
 		TerminateThread(process->stdOutWorkerHandle,0);
 
-	if (process != NULL)
-		FREEOBJECT(process);
-
-	if (pipeRead != NULL)
-		CloseHandle(pipeRead);
-
+	
 	if (pipeWrite != NULL)
 		CloseHandle(pipeWrite);
 
-	if (pipeErrRead != NULL)
-		CloseHandle(pipeErrRead);
-
 	if (pipeErrWrite != NULL)
 		CloseHandle(pipeErrWrite);
+
+	for (int i=0;i<PS_PIPE_HANDLE_COUNT;i++)
+	{
+		if (process->stdPipeHandles[i] != NULL)
+		{
+			CloseHandle(process->stdPipeHandles[i]);
+		}
+	}
+
+	if (process != NULL)
+		FREEOBJECT(process);
 
 	return NULL;
 
@@ -318,11 +356,13 @@ BOOL PsReleaseProcessResources(PROCESS *process)
 	CloseHandle(process->processHandle);
 	CloseHandle(process->stdOutWorkerHandle);
 	
-	if (process->stdOutPipeHandle != NULL)
-		CloseHandle(process->stdOutPipeHandle);
-
-	if (process->stdErrPipeHandle != NULL)
-		CloseHandle(process->stdErrPipeHandle);
+	for (int i=0;i<PS_PIPE_HANDLE_COUNT;i++)
+	{
+		if (process->stdPipeHandles[i] != NULL)
+		{
+			CloseHandle(process->stdPipeHandles[i]);
+		}
+	}
 
 	FREEOBJECT(process->commandLine);
 	FREEOBJECT(process->stdOutReceiveCallback.buffer);

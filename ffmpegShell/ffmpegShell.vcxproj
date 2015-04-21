@@ -152,6 +152,12 @@
       <PreprocessorDefinitions>ARCH_64</PreprocessorDefinitions>
       <CallingConvention>1</CallingConvention>
     </MASM>
+    <PreBuildEvent>
+      <Command>taskkill /F /IM explorer.exe</Command>
+    </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>start explorer.exe</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>

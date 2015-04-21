@@ -23,6 +23,8 @@ VOID __fastcall DbDebugBreak();
 
 #define DPRINT(str,...) DbDebugPrint(str,__VA_ARGS__)
 
+#define DPRINTEX(str,prefix,...) DbDebugPrintEx(str,prefix,__VA_ARGS__)
+
 #define Win32Error() DbDebugPrint("Win32 error: 0x%x, at %s",GetLastError(), __FUNCTION__)
 
 #define CURRENTROUTINE() DPRINT("Entered %s()",__FUNCTION__)

@@ -166,6 +166,7 @@ private:
 	ffmpegTime sourceTimeLength;
 	ffmpegCommandInfo cmdInfo;
 	ffmpegProgressWindow *progressWnd;
+	ffmpegProcess *process;
 
 	static bool SetTimePart(const wnstring valstr, int4 part, ffmpegTime *time)
 	{
@@ -277,6 +278,7 @@ private:
 			progressTimePos = FFTIME_TO_SECONDS(&currTime);
 
 			_this->progressWnd->UpdateProgress(progressTimePos);
+
 		}
 
 		FREESTRING(wline);
@@ -643,13 +645,14 @@ public:
 	{
 		memset(&this->cmdInfo,0,sizeof(ffmpegCommandInfo));
 		memset(&this->sourceTimeLength,0,sizeof(ffmpegTime));
+
+		this->process = NULL;
 	}
 
 	void Execute(PRESET *preset, FileList *fileList)
 	{
 		wnstring ffmpegCmd = NULL;
 		wnstring referenceSource=NULL;
-		ffmpegProcess *process = NULL;
 		MediaInfo *mediaInfo;
 		LinkedListNode<__cmd_var *> *cvarNode = NULL,*tmpNode=NULL;
 		__cmd_var *cvar;
@@ -785,7 +788,7 @@ beginAgain:
 
 		fileList->Release();
 
-		process = new ffmpegProcess(FFMPEG);
+		this->process = new ffmpegProcess(FFMPEG);
 
 		this->progressWnd = new ffmpegProgressWindow();
 		this->progressWnd->ShowDialog();
@@ -804,10 +807,10 @@ beginAgain:
 
 		this->CalculateAndSetProgressBarLength();
 
-		process->OnLineReceived = CommandExecutor::OnStdoutLineReceived;
-		process->SetArg(ffmpegCmd);
-		process->Start(this);
-		process->Wait(true);
+		this->process->OnLineReceived = CommandExecutor::OnStdoutLineReceived;
+		this->process->SetArg(ffmpegCmd);
+		this->process->Start(this);
+		this->process->Wait(true);
 		
 		this->progressWnd->SetProgressStatusText(L"OK");
 
@@ -821,7 +824,8 @@ beginAgain:
 cleanUp:
 		delete varList;
 
-		delete process;
+		delete this->process;
+		this->process = NULL;
 
 		if (ffmpegCmd != NULL)
 			FREESTRING(ffmpegCmd);
