@@ -286,7 +286,23 @@ public:
 	{
 		wcscpy(this->mediaFileName,mediaFile);
 		this->streamCount=0;
+		memset(this->streams,0,sizeof(this->streams));
+
 		Initialize();
+	}
+
+	uint4 GetStreamCount() const
+	{
+		return this->streamCount;
+	}
+
+	bool GetStreamInfo(StreamInfo *stream,uint4 streamIndex)
+	{
+		if (streamIndex > this->streamCount)
+			return false;
+
+		memcpy(stream,&this->streams[streamIndex],sizeof(StreamInfo));
+		return true;
 	}
 
 	bool GetMediaDuration(ffmpegTime *mt)

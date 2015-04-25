@@ -92,6 +92,7 @@ public:
 		CloseHandle(this->initCompletedEvent);
 	}
 
+
 	virtual bool ShowDialog()
 	{
 		return ShowDialog(true);
@@ -108,6 +109,11 @@ public:
 			&this->wci);
 
 		return this->uiObject != NULL;
+	}
+
+	int4 MessageBox(wnstring msg, wnstring title, uint4 flags)
+	{
+		return ::MessageBoxW(this->uiObject->hwnd,(LPCWSTR)msg,(LPCWSTR)title,flags);
 	}
 
 	void WaitForInitCompletion()

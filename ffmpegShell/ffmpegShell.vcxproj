@@ -153,10 +153,10 @@
       <CallingConvention>1</CallingConvention>
     </MASM>
     <PreBuildEvent>
-      <Command>taskkill /F /IM explorer.exe</Command>
+      <Command>$(SolutionDir)explorerDeployHelper\bin\Release\explorerDeployHelper.exe -kill</Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>start explorer.exe</Command>
+      <Command>$(SolutionDir)explorerDeployHelper\bin\Release\explorerDeployHelper.exe -start</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -295,6 +295,7 @@
     <ClInclude Include="src\include\helper\ByteBuffer.h" />
     <ClInclude Include="src\include\debug.h" />
     <ClInclude Include="src\include\Settings.h" />
+    <ClInclude Include="src\include\ui\ctrl\UiComboBox.h" />
     <ClInclude Include="src\include\ui\ctrl\UiControlBase.h" />
     <ClInclude Include="src\include\ui\DialogImpls.h" />
     <ClInclude Include="src\include\dllmain.h" />

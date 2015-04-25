@@ -8,6 +8,7 @@ class UiControlBase
 protected:
 	UIOBJECT *ui;
 	uint4 ctrlId;
+	HWND ctrlHwnd;
 public:
 	UiControlBase()
 	{
@@ -19,6 +20,8 @@ public:
 	{
 		this->ui = ui;
 		this->ctrlId = ctrlId;
+
+		this->ctrlHwnd = GetDlgItem(this->ui->hwnd,this->ctrlId);
 	}
 
 	virtual void OnInitControl()

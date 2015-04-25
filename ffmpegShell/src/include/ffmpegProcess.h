@@ -16,11 +16,14 @@ typedef enum
 static const wnstring FFMPEG_BINARY = L"ffmpeg.exe";
 static const wnstring FFPROBE_BINARY = L"ffprobe.exe";
 
+FORWARDED SETTINGS g_settings;
+
 class ffmpegProcess
 {
 	PROCESS *process;
 	wnstring argList;
 	vptr cbArg;
+	int4 exitCode;
 
 	
 	static void StdoutReceive(LPVOID arg, LPCSTR line, int size)
@@ -76,6 +79,9 @@ public:
 
 		this->process = PsExecuteProcess(NULL,cmdLine,(STDOUT_RECEIVE_ROUTINE)ffmpegProcess::StdoutReceive,this);
 		
+		if (this->process != NULL)
+			this->exitCode=0;
+
 		FREESTRING(cmdLine);
 
 		return this->process != NULL;
@@ -84,13 +90,16 @@ public:
 	void Close()
 	{
 		if (this->process != NULL)
+		{
 			PsKillProcess(this->process);
+			this->exitCode = -1;
+		}
 	}
 
 	void Wait(bool alsoWaitStdoutCompletion)
 	{
 		if (this->process != NULL)
-			PsWaitForExit(this->process);
+			this->exitCode = (int4)PsWaitForExit(this->process);
 
 		if (alsoWaitStdoutCompletion)
 			PsWaitForStdoutReadCompletion(this->process);
@@ -101,7 +110,10 @@ public:
 		Wait(false);
 	}
 
-	
+	int4 GetExitCode() const
+	{
+		return this->exitCode;
+	}
 
 	OnLineReceivedHandler OnLineReceived;
 

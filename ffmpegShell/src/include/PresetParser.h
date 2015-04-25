@@ -58,14 +58,6 @@ typedef struct
 
 typedef void (*COMPILATION_EVENT_HANDLER)(void *, wnstring);
 
-static __forceinline void LazyWcsToMb(wnstring wstr, anstring abuf)
-{
-	while (*wstr != L'\0')
-	{
-		*abuf++ = (achar)*wstr++;
-	}
-}
-
 #define NodePtr(node) node->GetValue()
 
 #define NodeNextPtr(node) node->Next()->GetValue()

@@ -111,7 +111,13 @@ private:
 		InsertLanguageString(L"FSL_MSG_COMPILED_SUCCESS",L"Preset compiled successfuly.\r\n",true);
 		InsertLanguageString(L"FSL_MSG_COMPILE_FAILED",L"Preset could not compiled.\r\n",true);
 		InsertLanguageString(L"FSL_MSG_ACQUIRING_MEDIA_INFO",L"Initializing and acquiring media info...",true);
-		InsertLanguageString(L"FSL_MSG_PROCESSING",L"Processing (%d%%)",true);
+		InsertLanguageString(L"FSL_MSG_NO_STREAM_DETECTED",L"There is no valid stream metadata for this file",true);
+
+		InsertLanguageString(L"FSL_MSG_STARTING_FFMPEG_OP",L"Initiating ffmpeg process",true);
+		InsertLanguageString(L"FSL_MSG_PROCESSING_TIME",L"Processing: %02d:%02d:%02d",true);
+		InsertLanguageString(L"FSL_MSG_OPERATION_COMPLETED_SUCCESSFULY",L"Operation has been completed successfuly",true);
+		InsertLanguageString(L"FSL_MSG_FFMPEG_EXITED_UNEXPECTED",L"Operation failed. ffmpeg exited unexpectedly.",true);
+		InsertLanguageString(L"FSL_MSG_CANCELLED_BY_USER",L"Operation cancelled by user",true);
 
 		InsertLanguageString(L"FSL_MN_SETTINGS",L"Settings",true);
 		InsertLanguageString(L"FSL_MN_COMPILE",L"Compile preset",true);
@@ -132,6 +138,22 @@ private:
 		InsertLanguageString(L"FSL_UI_PSTVALUE_ABIT_STATIC",L"Audio bitrate:",true);
 		InsertLanguageString(L"FSL_UI_PSTVALUE_STARTTIME_STATIC",L"Start time (-ss):",true);
 		InsertLanguageString(L"FSL_UI_PSTVALUE_DURLEN_STATIC",L"Duration/Length (-t,-to):",true);
+
+		InsertLanguageString(L"FSL_UI_PROGRESSDLG_CANCEL_BUTTON",L"Cancel",true);
+
+
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_TITLE",L"Media information",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_STREAMINDEX_STATIC",L"Stream Index:",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_CODECNAME",L"Codec Name: %s",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_CODECTYPE",L"Codec Type: %s",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_CODECTAG",L"Codec Tag: %s",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_ASPECTRAT",L"Aspect Ratio: %s",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_DURATION",L"Duration: %02d:%02d:%02d",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_SIZE",L"Width: %d, Height: %d",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_BITRATE",L"Bitrate: %d",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_NUMOFFRAMES",L"Number of frames: %d",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_SAMPRATE",L"Sample rate: %d",true);
+		InsertLanguageString(L"FSL_UI_MEDIAINFO_CHANNELS",L"Channels: %d",true);
 
 		//etc.
 	}
@@ -213,6 +235,11 @@ public:
 			{
 				fileIo->Close();
 				delete fileIo;
+
+				MessageBoxW(NULL,
+					L"Language file is not unicode format. File content ignored and loaded defaults",
+					L"Incorrect language file format",
+					MB_ICONWARNING | MB_OK);
 
 				goto exitSuccess;
 			}

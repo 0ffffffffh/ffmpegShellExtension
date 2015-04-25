@@ -11,6 +11,11 @@
 #include "helper\ArgPack.h"
 #include "ui\lang\LanMan.h"
 
+#define FSLF_NONE				0
+#define FSLF_SETTINGS_LOADED	1
+#define FSLF_PRESETS_LOADED		2
+#define FSLF_LANGUAGE_LOADED	4
+
 //File system object list.
 FileList*					g_fileObjectList=NULL;
 HMENU						g_contextShellMenu=NULL;
@@ -18,16 +23,10 @@ MENUCONTAINER*				g_menu;
 UIOBJECT*					g_uiObj;
 HWND						g_activeHwnd=NULL;
 FILEPATHITEM*				g_selectedFile;
-bool						g_presetsLoaded=FALSE;
+DWORD						g_loadFlag=FSLF_NONE;
 FORWARDED SETTINGS			g_settings;
 FORWARDED LanguageManager*	gs_LanMan;
 
-VOID AfterUiDestoryDisposerRoutine()
-{
-	CURRENTROUTINE();
-	delete g_fileObjectList;
-	g_fileObjectList = NULL;
-}
 
 STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject *pdtobj,HKEY hkeyProgID)
 {
@@ -39,6 +38,18 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	wnstring compiledPresetPath;
 	UINT i;
 	
+	if (! (g_loadFlag & FSLF_SETTINGS_LOADED))
+	{
+		if (IntLoadSettings())
+			g_loadFlag |= FSLF_SETTINGS_LOADED;
+	}
+
+	if (! (g_loadFlag & FSLF_LANGUAGE_LOADED) )
+	{
+		LanguageManager::Initialize(g_settings.langFilename);
+		g_loadFlag |= FSLF_LANGUAGE_LOADED;
+	}
+
 	if (pdtobj == NULL)
 		return S_OK; //Its a directory background handler. simply return ok
 
@@ -56,20 +67,17 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 		return E_FAIL;
 	}
 
-	IntLoadSettings();
-
 	compiledPresetPath = ffhelper::Helper::MakeAppPath(L"presets.cpf");
 
-	if (!g_presetsLoaded)
+	if (! (g_loadFlag & FSLF_PRESETS_LOADED) )
 	{
-		g_presetsLoaded = PtLoadPreset(compiledPresetPath);
-		LanguageManager::Initialize(g_settings.langFilename);
+		if (PtLoadPreset(compiledPresetPath))
+			g_loadFlag |= FSLF_PRESETS_LOADED;
 	}
 
 	FREESTRING(compiledPresetPath);
 
-	DbDebugPrint("fileObjectList = %p",g_fileObjectList);
-
+	
 	if (g_fileObjectList == NULL)
 		g_fileObjectList = new FileList();
 
@@ -79,9 +87,6 @@ STDMETHODIMP CffmpegShellCtrl::Initialize(LPCITEMIDLIST pidlFolder, IDataObject 
 	g_fileObjectList->AddRef();
 	
 	fileCount = DragQueryFileW((HDROP)stgMedData.hGlobal,0xFFFFFFFF,NULL,0);
-
-	DbDebugPrint("Selected Object Count=%d",fileCount);
-
 
 	if (fileCount > 2)
 	{
@@ -136,7 +141,7 @@ STDMETHODIMP CffmpegShellCtrl::QueryContextMenu(HMENU hmenu, UINT indexMenu,UINT
 		}
 		else
 		{
-			if (!g_presetsLoaded)
+			if (!( g_loadFlag & FSLF_PRESETS_LOADED))
 			{
 				return MeActivateMenu(g_menu,hmenu);
 			}

@@ -268,17 +268,17 @@ private:
 		
 		if (ParseProcessedTime(wline,L"time",&currTime))
 		{
-			memset(wline,0,sizeof(wchar) * len);
-			
-			wsprintf(wline,L"TIME: %d hr. %d min. %d sec",
-				currTime.hours,currTime.minutes,currTime.seconds);
-
-			_this->progressWnd->SetProgressStatusText(wline);
-			
 			progressTimePos = FFTIME_TO_SECONDS(&currTime);
 
-			_this->progressWnd->UpdateProgress(progressTimePos);
-
+			if (progressTimePos)
+			{
+				_this->progressWnd->SetProgressStatusText(
+					LANGSTR("FSL_MSG_PROCESSING_TIME",
+					currTime.hours,currTime.minutes,currTime.seconds)
+					);
+				
+				_this->progressWnd->UpdateProgress(progressTimePos);
+			}
 		}
 
 		FREESTRING(wline);
@@ -564,7 +564,7 @@ private:
 	}
 
 	wnstring GenerateActualFFmpegCommand(
-		const wchar *cmd, 
+		PRESET *preset,
 		DynamicArray<__cmd_var *> *varList, 
 		DynamicArray<__cmd_var *> *userInputVarList,
 		InputVariableField fields)
@@ -572,7 +572,7 @@ private:
 		__cmd_var *var;
 		FILEPATHITEM *fileItem,*outFileInfo;
 		wchar *replStr = ALLOCSTRINGW(MAX_PATH);
-		AutoStringW str(cmd);
+		AutoStringW str(preset->command);
 		uint4 shiftLen=0, replStrLen=0,copyPos=0,copyLen=0;
 
 		//request input first
@@ -591,13 +591,18 @@ private:
 				if (outFileInfo == NULL)
 					return NULL;
 
+				if (preset->destinationFormat[0])
+				{
+					FlSetNodePart(outFileInfo,preset->destinationFormat,OPL_EXTENSION);
+				}
+
 				replStrLen = FlGeneratePathString2(
 					outFileInfo,
 					replStr,
 					MAX_PATH,
 					FL_FLAG_ZERO_BUFFER | FL_FLAG_QUOTE_SURROUNDED,
 					PAS_OBJECTNAME,
-					L"output");
+					L"_output");
 			}
 			else if (var->type == CMVT_INF)
 			{
@@ -779,7 +784,7 @@ beginAgain:
 		}
 
 		ffmpegCmd = GenerateActualFFmpegCommand(
-			preset->command,
+			preset,
 			&processedVarList,
 			&userInputVarList,
 			ivf);
@@ -803,7 +808,7 @@ beginAgain:
 		delete mediaInfo;
 		FREESTRING(referenceSource);
 
-		this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_PROCESSING",0));
+		this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_STARTING_FFMPEG_OP"));
 
 		this->CalculateAndSetProgressBarLength();
 
@@ -811,11 +816,22 @@ beginAgain:
 		this->process->SetArg(ffmpegCmd);
 		this->process->Start(this);
 		this->process->Wait(true);
-		
-		this->progressWnd->SetProgressStatusText(L"OK");
+
+		switch (this->process->GetExitCode())
+		{
+		case -1:
+			this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_CANCELLED_BY_USER"));
+			break;
+		case 0:
+			this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_OPERATION_COMPLETED_SUCCESSFULY"));
+			break;
+		default: //other cases means that it has failed
+			this->progressWnd->SetProgressStatusText(LANGSTR("FSL_MSG_FFMPEG_EXITED_UNEXPECTED"));
+			break;
+		}
 
 		this->progressWnd->UpdateProgress(ULONG_MAX);
-
+		
 		//this->progressWnd->Close();
 
 		//delete this->progressWnd;

@@ -165,7 +165,21 @@ namespace ffhelper
 			return ws+1;
 		}
 
-
+		static __forceinline void LazyWcsToMb(wnstring wstr, anstring abuf)
+		{
+			while (*wstr != L'\0')
+			{
+				*abuf++ = (achar)*wstr++;
+			}
+		}
+		
+		static __forceinline void LazyMbToWcs(anstring astr, wnstring wbuf)
+		{
+			while (*astr != '\0')
+			{
+				*wbuf++ = (wchar)*astr++;
+			}
+		}
 
 		static wnstring AnsiToWideString(anstring str)
 		{

@@ -92,7 +92,7 @@ UINT WINAPI _PsiStandartOutputReceiveWorker(LPVOID p)
 	DPRINT("Initial seed: %d",process->currentPipeHandleIndex);
 
 	
-	while (keepRun)
+	while (!process->cancelRequested && keepRun)
 	{
 		stdHandle = _PsiGetCurrentHandle(process);
 
@@ -330,6 +330,12 @@ cleanUp: //Release the resources if it has failed
 
 BOOL PsKillProcess(PROCESS *process)
 {
+	if (process == NULL)
+		return FALSE;
+
+	//request cancellation
+	process->cancelRequested = TRUE;
+
 	//Terminate process
 	if (TerminateProcess(process->processHandle,0))
 	{

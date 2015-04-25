@@ -71,10 +71,9 @@ public:
 		
 		FlGeneratePathString(item,fileName,MAX_PATH,PAS_NONE,NULL);
 
-		MediaInfo *mediaInfo = new MediaInfo((wnstring)fileName);
-
-		//TODO: Fix valid stream index
-		mediaInfo->GetBitrate(0);
+		MediaInfoDlg *mediaInfoDlg = new MediaInfoDlg();
+		mediaInfoDlg->ShowDialog(fileName);
+		
 		HE_SUCCESS;
 	}
 

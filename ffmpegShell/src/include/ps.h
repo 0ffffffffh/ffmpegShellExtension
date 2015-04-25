@@ -28,6 +28,7 @@ typedef struct
 	DWORD					currentPipeHandleIndex;
 	RECEIVE_CALLBACK_INFO	stdOutReceiveCallback;
 	BOOL					running;
+	BOOL					cancelRequested;
 	SPINLOCK				stdPipeIoLock;
 }PROCESS;
 
