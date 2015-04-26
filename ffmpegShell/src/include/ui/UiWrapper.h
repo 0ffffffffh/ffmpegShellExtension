@@ -25,6 +25,12 @@ private:
 		case WM_COMMAND:
 			_this->OnCommand(wp,lp);
 			break;
+		case WM_PAINT:
+			_this->OnPaint();
+			break;
+		case WM_TIMER:
+			_this->OnTimerTick((int4)wp);
+			break;
 		case WM_CLOSE:
 			_this->OnClose();
 			break;
@@ -109,6 +115,17 @@ public:
 			&this->wci);
 
 		return this->uiObject != NULL;
+	}
+
+	HWND GetHWND() const
+	{
+		return this->uiObject->hwnd;
+	}
+
+	bool SetTimer(int4 timerId,uint4 period)
+	{
+		return ::SetTimer(this->uiObject->hwnd,(UINT_PTR)timerId,(UINT)period,NULL) 
+			== timerId;
 	}
 
 	int4 MessageBox(wnstring msg, wnstring title, uint4 flags)
@@ -211,7 +228,16 @@ public:
 		return ctrl;
 	}
 
+	virtual void OnTimerTick(int4 timerId)
+	{
+
+	}
+
 	virtual void OnClose()
+	{
+	}
+
+	virtual void OnPaint()
 	{
 	}
 

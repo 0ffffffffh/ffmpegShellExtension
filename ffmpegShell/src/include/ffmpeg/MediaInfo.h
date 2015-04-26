@@ -13,7 +13,27 @@ typedef struct
 }ffmpegTime;
 
 #define FFTIME_TO_SECONDS( fftime ) \
-	((fftime)->hours * 60 * 60) + ((fftime)->minutes * 60) + ((fftime)->seconds)
+	( ((fftime)->hours * 60 * 60) + ((fftime)->minutes * 60) + ((fftime)->seconds) )
+
+static __forceinline void SECONDS_TO_FFTIME_DOUBLE(double d, ffmpegTime *dt)
+{
+	const int SECONDS_IN_MINUTE = 1 * 60;
+	const int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
+	
+	dt->hours = d / SECONDS_IN_HOUR;
+	d = fmod(d,SECONDS_IN_HOUR);
+	dt->minutes = d / SECONDS_IN_MINUTE;
+	d = fmod(d,SECONDS_IN_MINUTE);
+	
+	dt->seconds = d;
+	d = fmod(d,dt->seconds);
+	dt->milliseconds = d * 1000;
+}
+
+static __forceinline void SECONDS_TO_FFTIME_INT(int8 d, ffmpegTime *dt)
+{
+	SECONDS_TO_FFTIME_DOUBLE((double)d,dt);
+}
 
 typedef enum
 {
@@ -102,21 +122,6 @@ private:
 	wchar mediaFileName[MAX_PATH];
 	DynamicArray<LinkedList<AutoStringA *> *> ffprobeInfoList;
 
-	void DoubleToDuration(double d, ffmpegTime *dt)
-	{
-		const int SECONDS_IN_MINUTE = 1 * 60;
-		const int SECONDS_IN_HOUR = SECONDS_IN_MINUTE * 60;
-
-		dt->hours = d / SECONDS_IN_HOUR;
-		d = fmod(d,SECONDS_IN_HOUR);
-		dt->minutes = d / SECONDS_IN_MINUTE;
-		d = fmod(d,SECONDS_IN_MINUTE);
-		
-		dt->seconds = d;
-		d = fmod(d,dt->seconds);
-		dt->milliseconds = d * 1000;
-	}
-
 	int4 CompareffmpegTime(ffmpegTime *t1, ffmpegTime *t2)
 	{
 		uint4 t1Total=0,t2Total=0;
@@ -190,7 +195,7 @@ private:
 		else if (*key == "channels")
 			streamInfo->channels = val->ToInt32();
 		else if (*key == "duration")
-			DoubleToDuration(val->ToDouble(),&streamInfo->duration);
+			SECONDS_TO_FFTIME_DOUBLE(val->ToDouble(),&streamInfo->duration);
 	}
 
 	void SetFormatProperty(LinkedList<AutoStringA *> *kvChain)
@@ -201,7 +206,7 @@ private:
 		val = kvChain->End()->GetValue();
 
 		if (*key == "duration")
-			DoubleToDuration(val->ToDouble(),&this->time);
+			SECONDS_TO_FFTIME_DOUBLE(val->ToDouble(),&this->time);
 		else if (*key == "size")
 			this->size = val->ToInt64();
 
@@ -308,9 +313,6 @@ public:
 	bool GetMediaDuration(ffmpegTime *mt)
 	{
 		ffmpegTime *maxTime=NULL;
-		
-
-		//TODO: Do this thing on the stream info initialization at once
 
 		for (int4 i=0;i<this->streamCount;i++)
 		{
@@ -330,8 +332,6 @@ public:
 		
 		return this->streams[streamIndex].bitRate;
 	}
-
-
 
 
 };

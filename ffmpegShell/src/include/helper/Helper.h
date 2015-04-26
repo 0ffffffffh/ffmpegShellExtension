@@ -44,6 +44,15 @@ public:
 
 namespace ffhelper
 {
+	class Threaded
+	{
+	public:
+		static bool Start(LPTHREAD_START_ROUTINE threadRoutine, vptr arg)
+		{
+			return (bool)QueueUserWorkItem(threadRoutine,arg,WT_EXECUTELONGFUNCTION);
+		}
+	};
+
 	class Helper
 	{
 	public:
@@ -122,6 +131,11 @@ namespace ffhelper
 			wcscat(appPath,fileName + ((int)(*fileName == L'\\')));
 			
 			return (wnstring)appPath;
+		}
+
+		static HINSTANCE GetAppInstance()
+		{
+			return (HINSTANCE)ge_ModuleInstance;
 		}
 
 		static wnstring GetModulePath()

@@ -181,7 +181,6 @@ public:
 		if (!UiWrapper::ShowDialog())
 			return false;
 
-		//DisableControl(IDC_BTNDCOK);
 		status = new AutoString<wchar>();
 		return true;
 	}
@@ -246,7 +245,7 @@ public:
 		this->SetControlText(IDC_LBLSETTING_BINDIR, LANGSTR("FSL_UI_SETTING_FFMPEG_DIR_STATIC"));
 		this->SetControlText(IDC_LBLSETTING_LANG,LANGSTR("FSL_UI_SETTING_CURRENT_LANG_STATIC"));
 		this->SetControlText(IDC_BTNBROWSE,LANGSTR("FSL_UI_SETTING_BROWSE_BUTTON"));
-		this->GetControlText(IDC_BTN_MIOK,LANGSTR("FSL_UI_GEN_OK_BUTTON"));
+		this->SetControlText(IDC_BTN_MIOK,LANGSTR("FSL_UI_GEN_OK_BUTTON"));
 	}
 
 };
@@ -300,12 +299,58 @@ public:
 	}
 };
 
+#include "..\ffmpeg\ThumbnailExtractor.h"
 
 class MediaInfoDlg : public UiWrapper
 {
 private:
 	MediaInfo *mediaInfo;
+	ThumbnailExtractor *thumbExtract;
+	wnstring fileName;
+	bool mediaLoadDone;
+	int4 thumbIndex;
 	UiComboBox *cbStreamIds;
+	UiProgressbar *pbLoad;
+
+	void LoadThumbnail(bool wmPaint)
+	{
+		HDC dc,softDc;
+		HGDIOBJ prev;
+		RECT rcThumBox;
+
+		if (!this->mediaLoadDone)
+			return;
+
+		HWND pictHwnd = GetDlgItem(GetHWND(),IDC_PICT_MITHUMB);
+		dc = GetDC(pictHwnd);
+
+		softDc = CreateCompatibleDC(dc);
+
+		if (!wmPaint)
+		{
+			if (this->thumbIndex >= 4)
+				this->thumbIndex = 0;
+			else
+				this->thumbIndex++;
+		}
+
+		prev = SelectObject(softDc,this->thumbExtract->GetFrameBitmapByFrameId(this->thumbIndex));
+
+		GetWindowRect(pictHwnd,&rcThumBox);
+		
+		StretchBlt(dc,
+			0,0,
+			rcThumBox.right-rcThumBox.left,
+			rcThumBox.bottom - rcThumBox.top,
+			softDc,
+			0,0,
+			256,
+			192,
+			SRCCOPY);
+
+		DeleteDC(softDc);
+		
+	}
 
 	void UpdateInfoPanel(int4 streamIndex)
 	{
@@ -313,7 +358,6 @@ private:
 		StreamInfo sinfo;
 		AutoStringW str;
 
-		
 		if (!this->mediaInfo->GetStreamInfo(&sinfo,streamIndex))
 			return;
 
@@ -360,16 +404,70 @@ private:
 		SetControlText(IDC_LBL_MIINFOPANEL,str.c_str());
 	}
 
+	static DWORD WINAPI MediaInfoGrabWorker(LPVOID arg)
+	{
+		int4 i;
+		wchar indexSbuf[5];
+		ffmpegTime ftime;
+		MediaInfoDlg *_this = (MediaInfoDlg *)arg;
+
+		_this->SetControlText(IDC_LBL_MILOADING,L"Loading...");
+		_this->pbLoad->SetRange(0,5);
+
+		_this->mediaInfo = new MediaInfo(_this->fileName);
+		_this->thumbExtract = new ThumbnailExtractor(_this->fileName);
+		
+		if (!_this->mediaInfo->GetStreamCount())
+		{
+			_this->MessageBox(LANGSTR("FSL_MSG_NO_STREAM_DETECTED"),NULL, MB_OK | MB_ICONWARNING);
+			return 0;
+		}
+
+		_this->mediaInfo->GetMediaDuration(&ftime);
+		_this->pbLoad->Increment();
+
+		_this->thumbExtract->ExtractFrame(4,&ftime);
+		
+		_this->pbLoad->Add(4);
+
+		for (i = 0; i < _this->mediaInfo->GetStreamCount(); i++)
+		{
+			wsprintf(indexSbuf,L"%d",i);
+			_this->cbStreamIds->AddItem(indexSbuf);
+		}
+
+		_this->cbStreamIds->SetSelectedIndex(0);
+
+		_this->UpdateInfoPanel(0);
+
+		_this->SetTimer(0xDEAD,800);
+
+		_this->HideLoadingControls();
+		_this->mediaLoadDone = true;
+
+		return 0;
+	}
+
+
+	void HideLoadingControls()
+	{
+		ShowWindow(GetDlgItem(GetHWND(),IDC_LBL_MILOADING),SW_HIDE);
+		ShowWindow(GetDlgItem(GetHWND(),IDC_PB_MILOADING),SW_HIDE);
+	}
+
 public:
 
 	MediaInfoDlg() : UiWrapper(IDD_DLGMEDIA_INFO,true)
 	{
 		this->mediaInfo = NULL;
+		this->thumbIndex = 0;
+		this->mediaLoadDone = false;
 	}
 
 	bool ShowDialog(wnstring fileName)
 	{
-		this->mediaInfo = new MediaInfo(fileName);
+		this->fileName = ALLOCSTRINGW(MAX_PATH);
+		wcscpy(this->fileName,fileName);
 		return UiWrapper::ShowDialog();
 	}
 
@@ -396,31 +494,25 @@ public:
 		}
 	}
 
-	void OnInit()
+	void OnTimerTick(int4 timerId)
 	{
-		int4 i;
-		wchar indexSbuf[5];
+		LoadThumbnail(false);
+	}
 
-		if (!this->mediaInfo->GetStreamCount())
-		{
-			MessageBox(LANGSTR("FSL_MSG_NO_STREAM_DETECTED"),NULL, MB_OK | MB_ICONWARNING);
-			return;
-		}
+	void OnPaint()
+	{
+		LoadThumbnail(true);
+	}
+
+	void OnInit()
+	{		
+		ffhelper::Threaded::Start(MediaInfoGrabWorker,this);
 
 		SetWindowTitle(LANGSTR("FSL_UI_MEDIAINFO_TITLE"));
 		SetControlText(IDC_LBL_MISTREAMID,LANGSTR("FSL_UI_MEDIAINFO_STREAMINDEX_STATIC"));
 
+		this->pbLoad = GetControlById<UiProgressbar>(IDC_PB_MILOADING);
 		this->cbStreamIds = GetControlById<UiComboBox>(IDC_CB_MISTREAMID);
-
-		for (i = 0; i< this->mediaInfo->GetStreamCount(); i++)
-		{
-			wsprintf(indexSbuf,L"%d",i);
-			this->cbStreamIds->AddItem(indexSbuf);
-		}
-
-		this->cbStreamIds->SetSelectedIndex(0);
-
-		UpdateInfoPanel(0);
 
 	}
 

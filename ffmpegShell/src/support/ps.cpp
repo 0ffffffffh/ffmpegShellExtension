@@ -359,6 +359,10 @@ BOOL PsReleaseProcessResources(PROCESS *process)
 	if (PsiStillRunning(process))
 		return FALSE;
 
+	process->cancelRequested = TRUE;
+
+	WaitForSingleObject(process->stdOutWorkerHandle,2000);
+
 	CloseHandle(process->processHandle);
 	CloseHandle(process->stdOutWorkerHandle);
 	

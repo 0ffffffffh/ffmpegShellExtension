@@ -306,10 +306,14 @@ BOOL IntUiCreateDialog(UIOBJECT *uiObj)
 	if (uiObj->seperateThread)
 	{
 		uiObj->uiThread = CreateThread(NULL,0,(LPTHREAD_START_ROUTINE)IntUiWorker,uiObj,0,&tid);
+		uiObj->uiThreadId = tid;
+
+		DPRINT("Ui worker thread id: %d",tid);
+
 	}
 	else
 	{
-		uiObj->uiThread = GetCurrentThread();
+		uiObj->uiThreadId = GetCurrentThreadId();
 		IntUiWorker(uiObj);
 	}
 
@@ -403,7 +407,7 @@ void UiDestroyDialog(UIOBJECT *ui)
 		ui->isUiOutside = FALSE;
 
 		//we must wait only async destroy request to avoid a deadlock 
-		if (ui->uiThread != GetCurrentThread())
+		if (ui->uiThreadId != GetCurrentThreadId())
 			uiThread = ui->uiThread;
 
 		//Hmm. This function called from outside of UIMgr

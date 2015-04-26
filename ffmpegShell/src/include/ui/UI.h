@@ -38,6 +38,7 @@ typedef struct tagUiResult
 	UIDLGPROC dlgProc;
 	UIAFTEREXITDISPOSER uiDisposer;
 	HANDLE uiThread;
+	DWORD uiThreadId;
 	HANDLE uiEvent;
 	INT_PTR result;
 	UINT dlgResourceId;
